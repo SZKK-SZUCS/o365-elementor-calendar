@@ -44,17 +44,28 @@ class AjaxHandlers {
 
     public function verify_auth_code( $request ) {
         $email = sanitize_email( $request->get_param( 'email' ) );
-        $code = sanitize_text_field( $request->get_param( 'code' ) );
+        $code  = sanitize_text_field( $request->get_param( 'code' ) );
         $saved = get_transient( 'o365_auth_' . md5( $email ) );
 
-        if ( ! $saved || $saved !== $code ) return new WP_REST_Response( [ 'message' => 'Hibás kód.' ], 400 );
+        if ( ! $saved || $saved !== $code ) {
+            return new \WP_REST_Response( [ 'message' => 'Hibás kód.' ], 400 );
+        }
 
         $calendars = $this->api->get_calendars( $email );
-        if ( is_wp_error( $calendars ) ) return new WP_REST_Response( [ 'message' => $calendars->get_error_message() ], 400 );
+        if ( is_wp_error( $calendars ) ) {
+            return new \WP_REST_Response( [ 'message' => $calendars->get_error_message() ], 400 );
+        }
 
         $list = [];
-        foreach ( $calendars['value'] as $cal ) { $list[$cal['id']] = $cal['name']; }
-        return new WP_REST_Response( [ 'calendars' => $list ], 200 );
+        foreach ( $calendars['value'] as $cal ) {
+            $list[ $cal['id'] ] = $cal['name'];
+        }
+
+        // LEMENTJÜK A NAPTÁRAKAT GLOBÁLISAN
+        update_option( 'o365_cached_calendars', $list );
+        update_option( 'o365_auth_email', $email );
+
+        return new \WP_REST_Response( [ 'calendars' => $list, 'message' => 'Sikeres hitelesítés! Az oldalsáv újratöltődik...' ], 200 );
     }
 
     public function get_calendar_events( $request ) {

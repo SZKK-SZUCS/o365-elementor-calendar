@@ -1,4 +1,3 @@
-// assets/js/editor.js
 jQuery(document).ready(function ($) {
   const modalId = "o365-setup-modal";
   if ($(`#${modalId}`).length === 0) {
@@ -82,6 +81,9 @@ jQuery(document).ready(function ($) {
 
   $("#o365-verify").on("click", function () {
     const code = $("#o365-code").val();
+    const btn = $(this);
+    btn.prop("disabled", true).text("Ellenőrzés...");
+
     $.ajax({
       url: "/wp-json/o365cal/v1/auth/verify-code",
       method: "POST",
@@ -89,13 +91,29 @@ jQuery(document).ready(function ($) {
       beforeSend: (xhr) => xhr.setRequestHeader("X-WP-Nonce", getNonce()),
     })
       .done((res) => {
-        calendars = Object.entries(res.calendars);
-        renderList(calendars);
-        $("#o365-step-2").hide();
-        $("#o365-step-3").show();
-        showLog("Sikeres hitelesítés! Válaszd ki a naptárat.");
+        showLog(res.message);
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
       })
-      .fail((err) => showLog("Hibás kód!", "error"));
+      .fail((err) => {
+        showLog(err.responseJSON?.message || "Hibás kód.", "error");
+        btn.prop("disabled", false).text("Ellenőrzés");
+      });
+  });
+
+  $(document).on("click", "#o365-resync-btn", function (e) {
+    e.preventDefault();
+    const btn = $(this);
+    const originalHtml = btn.html();
+    btn
+      .html('<i class="eicon-spinner eicon-animation-spin"></i> Töltés...')
+      .prop("disabled", true);
+
+    if (elementor && elementor.reloadPreview) {
+      elementor.reloadPreview();
+      setTimeout(() => btn.html(originalHtml).prop("disabled", false), 2500);
+    }
   });
 
   function renderList(list) {
@@ -126,5 +144,33 @@ jQuery(document).ready(function ($) {
     model.setSetting("calendar_name", selected.name);
     elementor.getPanelView().getCurrentPageView().render();
     $(`#${modalId}`).hide();
+  });
+
+  // Stílus Reset (Most már a try/catch blokk és a scope biztonságos)
+  $(document).on("click", "#o365-reset-styles", function (e) {
+    if (!confirm("Biztosan törölni akarsz minden egyedi stílusbeállítást?"))
+      return;
+    const model = elementor.getPanelView().getCurrentPageView().model;
+    const settings = model.attributes.settings.attributes;
+
+    Object.keys(settings).forEach((key) => {
+      if (
+        key.includes("color") ||
+        key.includes("bg") ||
+        key.includes("typography")
+      ) {
+        model.setSetting(key, "");
+      }
+    });
+    elementor.getPanelView().getCurrentPageView().render();
+  });
+
+  // Dropdown elrejtése ha csak 1 nézet aktív
+  $(document).on("change", 'input[data-setting^="enable_"]', function () {
+    const activeCount = $('input[data-setting^="enable_"]:checked').length;
+    const dropdowns = $(
+      ".elementor-control-default_view_desktop, .elementor-control-default_view_tablet, .elementor-control-default_view_mobile",
+    );
+    activeCount > 1 ? dropdowns.show() : dropdowns.hide();
   });
 });
