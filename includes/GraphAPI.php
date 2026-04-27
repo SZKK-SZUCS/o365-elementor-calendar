@@ -11,31 +11,23 @@ class GraphAPI {
     private $sender_email;
 
     public function __construct() {
-        $this->tenant_id = defined( 'O365_TENANT_ID' ) ? O365_TENANT_ID : '';
-        $this->client_id = defined( 'O365_CLIENT_ID' ) ? O365_CLIENT_ID : '';
+        $this->tenant_id     = defined( 'O365_TENANT_ID' ) ? O365_TENANT_ID : '';
+        $this->client_id     = defined( 'O365_CLIENT_ID' ) ? O365_CLIENT_ID : '';
         $this->client_secret = defined( 'O365_CLIENT_SECRET' ) ? O365_CLIENT_SECRET : '';
-        $this->sender_email = defined( 'O365_SENDER_EMAIL' ) ? O365_SENDER_EMAIL : '';
+        $this->sender_email  = defined( 'O365_SENDER_EMAIL' ) ? O365_SENDER_EMAIL : '';
     }
 
-    /**
-     * Ellenőrzi, hogy a konfig be van-e állítva
-     */
     public function is_configured() {
         return ! empty( $this->tenant_id ) && ! empty( $this->client_id ) && ! empty( $this->client_secret );
     }
 
-    /**
-     * Access Token lekérése (vagy cache-ből olvasása)
-     */
     public function get_access_token() {
         if ( ! $this->is_configured() ) {
-            return new WP_Error( 'missing_config', __( 'O365 konfiguráció hiányzik a wp-config.php-ból.', 'o365-calendar' ) );
+            return new WP_Error( 'missing_config', __( 'O365 konfiguráció hiányzik.', 'o365-calendar' ) );
         }
 
         $token = get_transient( 'o365_access_token' );
-        if ( $token ) {
-            return $token;
-        }
+        if ( $token ) return $token;
 
         $url = "https://login.microsoftonline.com/{$this->tenant_id}/oauth2/v2.0/token";
         $response = wp_remote_post( $url, [
@@ -47,36 +39,27 @@ class GraphAPI {
             ]
         ] );
 
-        if ( is_wp_error( $response ) ) {
-            return $response;
-        }
+        if ( is_wp_error( $response ) ) return $response;
 
         $body = json_decode( wp_remote_retrieve_body( $response ), true );
-
         if ( isset( $body['error'] ) ) {
             return new WP_Error( 'api_error', $body['error_description'] ?? $body['error'] );
         }
 
-        if ( isset( $body['access_token'] ) ) {
-            // A lejáratból levonunk 5 percet (300mp) biztonsági tartalékként
-            $expires_in = intval( $body['expires_in'] ) - 300;
-            set_transient( 'o365_access_token', $body['access_token'], $expires_in );
-            return $body['access_token'];
-        }
-
-        return new WP_Error( 'unknown_error', __( 'Sikertelen token lekérés.', 'o365-calendar' ) );
+        $expires_in = intval( $body['expires_in'] ) - 300;
+        set_transient( 'o365_access_token', $body['access_token'], $expires_in );
+        return $body['access_token'];
     }
 
-    /**
-     * API hívás helper
-     */
-    private function request( $method, $endpoint, $body = null ) {
+    private function request( $method, $endpoint, $params = [], $body = null ) {
         $token = $this->get_access_token();
-        if ( is_wp_error( $token ) ) {
-            return $token;
-        }
+        if ( is_wp_error( $token ) ) return $token;
 
         $url = "https://graph.microsoft.com/v1.0" . $endpoint;
+        if ( ! empty( $params ) ) {
+            $url = add_query_arg( $params, $url );
+        }
+
         $args = [
             'method'  => $method,
             'headers' => [
@@ -92,78 +75,45 @@ class GraphAPI {
         }
 
         $response = wp_remote_request( $url, $args );
-
-        if ( is_wp_error( $response ) ) {
-            return $response;
-        }
+        if ( is_wp_error( $response ) ) return $response;
 
         $response_code = wp_remote_retrieve_response_code( $response );
         $response_body = json_decode( wp_remote_retrieve_body( $response ), true );
 
         if ( $response_code >= 400 ) {
-            $error_msg = $response_body['error']['message'] ?? __( 'Ismeretlen Graph API hiba.', 'o365-calendar' );
-            return new WP_Error( 'graph_api_error', $error_msg );
+            return new WP_Error( 'graph_api_error', $response_body['error']['message'] ?? 'Graph API error' );
         }
 
         return $response_body;
     }
 
-    /**
-     * Felhasználó naptárainak lekérése
-     */
     public function get_calendars( $email ) {
-        return $this->request( 'GET', "/users/{$email}/calendars" );
+        return $this->request( 'GET', "/users/" . urlencode($email) . "/calendars" );
     }
 
-    /**
-     * Események lekérése időablak alapján
-     */
-    public function get_events( $email, $calendar_id, $start_date, $end_date ) {
-        // Caching logika, hogy 15 percig ne terheljük az API-t ugyanazzal a kéréssel
-        $cache_key = 'o365_ev_' . md5( $email . $calendar_id . $start_date . $end_date );
-        $cached_events = get_transient( $cache_key );
-        
-        if ( $cached_events !== false ) {
-            return $cached_events;
-        }
-
-        $endpoint = "/users/{$email}/calendars/{$calendar_id}/calendarView?startDateTime={$start_date}&endDateTime={$end_date}&\$select=subject,bodyPreview,body,start,end,location";
-        $response = $this->request( 'GET', $endpoint );
-
-        if ( ! is_wp_error( $response ) && isset( $response['value'] ) ) {
-            set_transient( $cache_key, $response['value'], 15 * MINUTE_IN_SECONDS );
-            return $response['value'];
-        }
-
-        return $response;
-    }
-
-    /**
-     * Validációs kód kiküldése emailben
-     */
-    public function send_verification_email( $to_email, $code ) {
-        if ( empty( $this->sender_email ) ) {
-            return new WP_Error( 'missing_sender', __( 'Nincs beállítva küldő email cím (O365_SENDER_EMAIL).', 'o365-calendar' ) );
-        }
-
-        $body = [
-            'message' => [
-                'subject' => __( 'Naptár hitelesítési kód / Calendar Auth Code', 'o365-calendar' ),
-                'body' => [
-                    'contentType' => 'Text',
-                    'content' => sprintf( __( 'A te hitelesítési kódod: %s', 'o365-calendar' ), $code )
-                ],
-                'toRecipients' => [
-                    [
-                        'emailAddress' => [
-                            'address' => $to_email
-                        ]
-                    ]
-                ]
-            ],
-            'saveToSentItems' => 'false'
+    public function get_events( $user_email, $calendar_id, $start_date, $end_date ) {
+        // A Microsoft a calendarView-nál ISO dátumokat vár, de tiszta formában
+        $params = [
+            'startDateTime' => $start_date,
+            'endDateTime'   => $end_date,
+            '$select'       => 'id,subject,start,end,bodyPreview,location,isAllDay',
+            '$top'          => 100
         ];
 
-        return $this->request( 'POST', "/users/{$this->sender_email}/sendMail", $body );
+        $endpoint = "/users/" . urlencode($user_email) . "/calendars/" . urlencode($calendar_id) . "/calendarView";
+        $result = $this->request( 'GET', $endpoint, $params );
+
+        return ( ! is_wp_error( $result ) && isset( $result['value'] ) ) ? $result['value'] : $result;
+    }
+
+    public function send_verification_email( $to_email, $code ) {
+        $body = [
+            'message' => [
+                'subject' => 'Naptár hitelesítés',
+                'body' => [ 'contentType' => 'Text', 'content' => "Kódod: {$code}" ],
+                'toRecipients' => [[ 'emailAddress' => [ 'address' => $to_email ] ]]
+            ]
+        ];
+        return $this->request( 'POST', "/users/{$this->sender_email}/sendMail", [], $body );
     }
 }
