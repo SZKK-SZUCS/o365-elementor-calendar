@@ -22,6 +22,7 @@ class O365CalendarWidget {
     this.eventCache = {};
     this.searchTerm = "";
     this.searchTimeout = null;
+    this.currentOpenEvent = null;
 
     this.initWrapper();
     this.initCalendar();
@@ -83,6 +84,13 @@ class O365CalendarWidget {
                   </div>
               </div>
               <div class="o365-modal-desc"></div>
+              
+              <div class="o365-modal-actions" style="margin-top: 25px; border-top: 1px solid rgba(0,0,0,0.05); padding-top: 20px; text-align: right;">
+                  <button class="o365-export-ical-btn">
+                      <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" style="vertical-align: middle; margin-right: 5px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                      Hozzáadás a naptárhoz
+                  </button>
+              </div>
           </div>
       </div>
     `;
@@ -99,12 +107,17 @@ class O365CalendarWidget {
     this.modalLocWrap = wrapper.querySelector(".meta-item.loc");
     this.modalLocTxt = wrapper.querySelector(".meta-item.loc span");
     this.modalDesc = wrapper.querySelector(".o365-modal-desc");
+    this.exportBtn = wrapper.querySelector(".o365-export-ical-btn");
 
     wrapper
       .querySelector(".o365-modal-close")
       .addEventListener("click", () => this.closeModal());
     this.modalOverlay.addEventListener("click", (e) => {
       if (e.target === this.modalOverlay) this.closeModal();
+    });
+
+    this.exportBtn.addEventListener("click", () => {
+      if (this.currentOpenEvent) this.downloadICal(this.currentOpenEvent);
     });
 
     this.searchInput.addEventListener("input", (e) => {
@@ -136,9 +149,8 @@ class O365CalendarWidget {
       timeZone: "local",
 
       height: "100%",
-      expandRows: true, // Egyenletes rácsmagasság
+      expandRows: true,
 
-      // KORLÁTOK BEKÖTÉSE
       slotMinTime: this.slotMin,
       slotMaxTime: this.slotMax,
       validRange: {
@@ -245,13 +257,18 @@ class O365CalendarWidget {
       hour: "2-digit",
       minute: "2-digit",
     });
+
+    // Emojik helyett inline SVG ikonok
+    const timeIcon = `<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" style="vertical-align: text-bottom; margin-right: 4px;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`;
+    const locIcon = `<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" style="vertical-align: text-bottom; margin-right: 4px;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>`;
+
     const loc = event.extendedProps.location
-      ? `<div class="tooltip-loc">📍 ${event.extendedProps.location}</div>`
+      ? `<div class="tooltip-loc">${locIcon} ${event.extendedProps.location}</div>`
       : "";
 
     tooltip.innerHTML = `
         <div class="tooltip-title">${event.title}</div>
-        <div class="tooltip-time">🕒 ${start}</div>
+        <div class="tooltip-time">${timeIcon} ${start}</div>
         ${loc}
     `;
 
@@ -266,8 +283,6 @@ class O365CalendarWidget {
     tooltip.style.top = `${
       rect.top + window.scrollY - tooltip.offsetHeight - 15
     }px`;
-
-    // A HIBÁS SOR JAVÍTÁSA: Display block beállítása
     tooltip.style.display = "block";
 
     requestAnimationFrame(() => {
@@ -283,6 +298,11 @@ class O365CalendarWidget {
 
   openModal(event) {
     this.hideTooltip();
+    this.currentOpenEvent = event;
+    const popoverCloseBtn = document.querySelector(".fc-popover-close");
+    if (popoverCloseBtn) {
+      popoverCloseBtn.click();
+    }
     this.modalTitle.textContent = event.title;
 
     const opt = {
@@ -326,6 +346,77 @@ class O365CalendarWidget {
     setTimeout(() => {
       this.modalOverlay.style.visibility = "hidden";
     }, 300);
+  }
+
+  downloadICal(event) {
+    const formatDate = (date) => {
+      if (!date) return "";
+      return (
+        date
+          .toISOString()
+          .replace(/-|:|\.\d+/g, "")
+          .substring(0, 15) + "Z"
+      );
+    };
+
+    const start = formatDate(event.start);
+    const end = event.end
+      ? formatDate(event.end)
+      : formatDate(new Date(event.start.getTime() + 60 * 60 * 1000));
+
+    let ical = [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "PRODID:-//O365 Elementor Calendar//HU",
+      "CALSCALE:GREGORIAN",
+      "METHOD:PUBLISH",
+      "BEGIN:VEVENT",
+      `UID:${event.id || new Date().getTime()}`,
+      `SUMMARY:${event.title}`,
+      `DTSTAMP:${formatDate(new Date())}`,
+      `DTSTART:${start}`,
+    ];
+
+    if (event.allDay) {
+      const allDayStart = event.start
+        .toISOString()
+        .split("T")[0]
+        .replace(/-/g, "");
+      let allDayEnd = allDayStart;
+      if (event.end)
+        allDayEnd = event.end.toISOString().split("T")[0].replace(/-/g, "");
+      ical[ical.length - 1] = `DTSTART;VALUE=DATE:${allDayStart}`;
+      ical.push(`DTEND;VALUE=DATE:${allDayEnd}`);
+    } else {
+      ical.push(`DTEND:${end}`);
+    }
+
+    if (event.extendedProps?.location) {
+      ical.push(`LOCATION:${event.extendedProps.location}`);
+    }
+
+    if (event.extendedProps?.body) {
+      const tmp = document.createElement("DIV");
+      tmp.innerHTML = event.extendedProps.body;
+      let text = tmp.textContent || tmp.innerText || "";
+      text = text.replace(/(\r\n|\n|\r)/gm, "\\n");
+      ical.push(`DESCRIPTION:${text}`);
+    }
+
+    ical.push("END:VEVENT");
+    ical.push("END:VCALENDAR");
+
+    const blob = new Blob([ical.join("\r\n")], {
+      type: "text/calendar;charset=utf-8",
+    });
+    const link = document.createElement("a");
+    link.href = window.URL.createObjectURL(blob);
+
+    const safeTitle = event.title.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
+    link.setAttribute("download", `${safeTitle}.ics`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }
 
   debounce(func, wait) {
