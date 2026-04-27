@@ -31,6 +31,7 @@ add_action( 'plugins_loaded', function() {
 add_action( 'elementor/widgets/register', function( $widgets_manager ) {
     $widgets_manager->register( new \O365Calendar\ElementorWidget() );
     $widgets_manager->register( new \O365Calendar\AgendaWidget() );
+    $widgets_manager->register( new \O365Calendar\SingleEventWidget() );
 });
 
 add_action( 'elementor/frontend/after_register_scripts', function() {

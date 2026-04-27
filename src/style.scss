@@ -519,3 +519,118 @@ $tahoma: "Tahoma", "Geneva", sans-serif;
     }
   }
 }
+
+.o365-single-event-container {
+  font-family: "Tahoma", sans-serif;
+
+  .o365-single-card {
+    display: flex;
+    align-items: center;
+    padding: 25px;
+    background: #fff;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    gap: 25px;
+    position: relative;
+    transition: transform 0.3s ease;
+
+    &:hover {
+      transform: translateY(-5px);
+    }
+
+    .single-event-date-badge {
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 70px;
+      height: 70px;
+      background: #242943;
+      color: #fff;
+      border-radius: 12px;
+      .day {
+        font-size: 24px;
+        font-weight: bold;
+        line-height: 1;
+      }
+      .month {
+        font-size: 11px;
+        font-weight: 600;
+        margin-top: 2px;
+        color: #50adc9;
+      }
+    }
+
+    .single-event-details {
+      flex-grow: 1;
+      .single-event-meta {
+        color: #50adc9;
+        font-size: 13px;
+        font-weight: 600;
+        margin-bottom: 5px;
+        text-transform: uppercase;
+      }
+      .single-event-title {
+        margin: 0;
+        color: #242943;
+        font-size: 20px;
+        font-weight: bold;
+      }
+      .single-event-loc {
+        margin-top: 8px;
+        font-size: 14px;
+        color: #888;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+    }
+
+    .o365-single-export {
+      background: none;
+      border: 1px solid #eee;
+      width: 45px;
+      height: 45px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: #242943;
+      transition: all 0.2s;
+      &:hover {
+        background: #50adc9;
+        color: #fff;
+        border-color: #50adc9;
+      }
+    }
+  }
+
+  .o365-single-mask {
+    padding: 20px;
+    text-align: center;
+    border: 2px dashed #eee;
+    border-radius: 12px;
+    color: #aaa;
+    font-style: italic;
+  }
+}
+
+// SÖTÉT SABLON
+.o365-single-template-dark {
+  .o365-single-card {
+    background: #242943;
+    .single-event-title {
+      color: #fff;
+    }
+    .single-event-date-badge {
+      background: #fff;
+      color: #242943;
+    }
+    .o365-single-export {
+      color: #fff;
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+  }
+}

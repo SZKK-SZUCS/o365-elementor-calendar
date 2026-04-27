@@ -567,7 +567,181 @@ class O365AgendaWidget {
   }
 }
 
+class O365SingleEventWidget {
+  constructor($scope) {
+    this.container = $scope.find(".o365-single-event-container")[0];
+    if (!this.container) return;
+
+    this.calendarId = this.container.dataset.calendarId;
+    if (!this.calendarId) {
+      this.container.innerHTML =
+        '<div class="o365-single-mask">Kérlek válassz naptárat a beállításokban!</div>';
+      return;
+    }
+
+    this.catFilter = this.container.dataset.categoryFilter || "";
+    this.searchKeyword = this.container.dataset.searchKeyword
+      ? this.container.dataset.searchKeyword.toLowerCase().trim()
+      : "";
+    this.expiryMode = this.container.dataset.expiryMode;
+    this.maskText = this.container.dataset.maskText;
+
+    this.config = {
+      loc: this.container.dataset.showLoc === "yes",
+      desc: this.container.dataset.showDesc === "yes",
+      export: this.container.dataset.showExport === "yes",
+    };
+
+    this.loadSingleEvent();
+  }
+
+  loadSingleEvent() {
+    const start = new Date().toISOString();
+    // 1 évet nézünk előre. (Tipp: a PHP GraphAPI.php-ban a $top értéket érdemes 500-ra tenni, hogy a távoli események is megjöjjenek)
+    const end = new Date(
+      new Date().getTime() + 365 * 24 * 60 * 60 * 1000,
+    ).toISOString();
+
+    const url = `/wp-json/o365cal/v1/events?calendar_id=${encodeURIComponent(
+      this.calendarId,
+    )}&start=${start}&end=${end}&category_filter=${encodeURIComponent(
+      this.catFilter,
+    )}`;
+
+    fetch(url)
+      .then((res) => res.json())
+      .then((events) => {
+        if (!events || !events.length) {
+          return this.handleEmpty();
+        }
+
+        let targetEvent = null;
+
+        // Keresési logika
+        if (this.searchKeyword) {
+          targetEvent = events.find((e) => {
+            const titleMatch =
+              e.title && e.title.toLowerCase().includes(this.searchKeyword);
+            const locMatch =
+              e.extendedProps?.location &&
+              e.extendedProps.location
+                .toLowerCase()
+                .includes(this.searchKeyword);
+            const descMatch =
+              e.extendedProps?.body &&
+              e.extendedProps.body.toLowerCase().includes(this.searchKeyword);
+            return titleMatch || locMatch || descMatch;
+          });
+        } else {
+          // Ha nincs kulcsszó, a legelső a listában
+          targetEvent = events[0];
+        }
+
+        if (targetEvent) {
+          this.renderEvent(targetEvent);
+        } else {
+          this.handleEmpty();
+        }
+      })
+      .catch((err) => {
+        console.error("O365 Single Event Error:", err);
+        this.handleEmpty();
+      });
+  }
+
+  handleEmpty() {
+    if (this.expiryMode === "hide") {
+      const widgetWrap = this.container.closest(
+        ".elementor-widget-o365_single_event",
+      );
+      if (widgetWrap) widgetWrap.style.display = "none";
+    } else {
+      this.container.innerHTML = `<div class="o365-single-mask">${this.maskText}</div>`;
+    }
+  }
+
+  renderEvent(event) {
+    const start = new Date(event.start);
+    const dateStr = start.toLocaleDateString("hu-HU", {
+      month: "long",
+      day: "numeric",
+      weekday: "long",
+    });
+    const timeStr = start.toLocaleTimeString("hu-HU", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+    let exportHtml = "";
+    if (this.config.export) {
+      exportHtml = `
+        <button class="o365-single-export" title="Naptárhoz adás">
+           <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        </button>`;
+    }
+
+    let locHtml = "";
+    if (this.config.loc && event.extendedProps?.location) {
+      locHtml = `
+        <div class="single-event-loc">
+            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+            ${event.extendedProps.location}
+        </div>`;
+    }
+
+    let descHtml = "";
+    if (this.config.desc && event.extendedProps?.body) {
+      // Levágjuk a HTML tageket egy biztonságos previewhoz
+      const tmp = document.createElement("DIV");
+      tmp.innerHTML = event.extendedProps.body;
+      const plainText = tmp.textContent || tmp.innerText || "";
+      const preview =
+        plainText.length > 100
+          ? plainText.substring(0, 100) + "..."
+          : plainText;
+
+      descHtml = `<div class="single-event-desc" style="font-size:13px; color:#777; margin-top:8px;">${preview}</div>`;
+    }
+
+    this.container.innerHTML = `
+      <div class="o365-single-card">
+        <div class="single-event-date-badge">
+            <span class="day">${start.getDate()}</span>
+            <span class="month">${start
+              .toLocaleDateString("hu-HU", { month: "short" })
+              .toUpperCase()}</span>
+        </div>
+        <div class="single-event-details">
+          <div class="single-event-meta">${dateStr} | ${timeStr}</div>
+          <h3 class="single-event-title">${event.title}</h3>
+          ${locHtml}
+          ${descHtml}
+        </div>
+        ${exportHtml}
+      </div>
+    `;
+
+    if (this.config.export) {
+      this.container
+        .querySelector(".o365-single-export")
+        .addEventListener("click", () => {
+          const exporter = new O365CalendarWidget(jQuery(this.container));
+          exporter.downloadICal(event);
+        });
+    }
+  }
+}
+
 // Inicializálás az Elementorban
+jQuery(window).on("elementor/frontend/init", () => {
+  elementorFrontend.hooks.addAction(
+    "frontend/element_ready/o365_single_event.default",
+    ($scope) => {
+      new O365SingleEventWidget($scope);
+    },
+  );
+});
+
 jQuery(window).on("elementor/frontend/init", () => {
   elementorFrontend.hooks.addAction(
     "frontend/element_ready/o365_agenda.default",
