@@ -583,6 +583,8 @@ class O365SingleEventWidget {
     this.searchKeyword = this.container.dataset.searchKeyword
       ? this.container.dataset.searchKeyword.toLowerCase().trim()
       : "";
+    this.searchStrictness =
+      this.container.dataset.searchStrictness || "contains";
     this.expiryMode = this.container.dataset.expiryMode;
     this.maskText = this.container.dataset.maskText;
 
@@ -620,17 +622,28 @@ class O365SingleEventWidget {
         // Keresési logika
         if (this.searchKeyword) {
           targetEvent = events.find((e) => {
-            const titleMatch =
-              e.title && e.title.toLowerCase().includes(this.searchKeyword);
-            const locMatch =
-              e.extendedProps?.location &&
-              e.extendedProps.location
-                .toLowerCase()
-                .includes(this.searchKeyword);
-            const descMatch =
-              e.extendedProps?.body &&
-              e.extendedProps.body.toLowerCase().includes(this.searchKeyword);
-            return titleMatch || locMatch || descMatch;
+            const title = e.title ? e.title.toLowerCase().trim() : "";
+
+            if (this.searchStrictness === "exact") {
+              // Szigorú teljes egyezés a címben
+              return title === this.searchKeyword;
+            } else if (this.searchStrictness === "starts_with") {
+              // Szigorú egyezés a cím elejére
+              return title.startsWith(this.searchKeyword);
+            } else {
+              // Laza egyezés: bárhol a címben, helyszínben vagy leírásban
+              const locMatch =
+                e.extendedProps?.location &&
+                e.extendedProps.location
+                  .toLowerCase()
+                  .includes(this.searchKeyword);
+              const descMatch =
+                e.extendedProps?.body &&
+                e.extendedProps.body.toLowerCase().includes(this.searchKeyword);
+              return (
+                title.includes(this.searchKeyword) || locMatch || descMatch
+              );
+            }
           });
         } else {
           // Ha nincs kulcsszó, a legelső a listában

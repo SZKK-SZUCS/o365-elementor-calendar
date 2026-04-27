@@ -71,6 +71,18 @@ class SingleEventWidget extends Widget_Base {
             'description' => 'A rendszer a legelső olyan jövőbeli eseményt mutatja meg, aminek a címében, helyszínében vagy leírásában szerepel ez a kifejezés.'
         ]);
 
+        $this->add_control('search_strictness', [
+            'label' => 'Keresés pontossága',
+            'type' => Controls_Manager::SELECT,
+            'default' => 'contains',
+            'options' => [
+                'contains' => 'Tartalmazza (Bárhol a címben/leírásban)',
+                'exact' => 'Teljes egyezés (Pontosan ez a címe)',
+                'starts_with' => 'Ezzel kezdődik (A cím ezzel kezdődik)',
+            ],
+            'condition' => ['event_selection' => 'keyword'],
+        ]);
+
         $this->end_controls_section();
 
         // --- MEGJELENÍTÉS KAPCSOLÓK ---
@@ -129,6 +141,7 @@ class SingleEventWidget extends Widget_Base {
              data-calendar-id="<?php echo esc_attr($cal_id); ?>"
              data-category-filter="<?php echo esc_attr($cat_filter); ?>"
              data-search-keyword="<?php echo esc_attr($settings['event_selection'] === 'keyword' ? $settings['search_keyword'] : ''); ?>"
+             data-search-strictness="<?php echo esc_attr($settings['search_strictness'] ?? 'contains'); ?>"
              data-expiry-mode="<?php echo esc_attr($settings['after_expiry']); ?>"
              data-mask-text="<?php echo esc_attr($settings['mask_text']); ?>"
              data-show-loc="<?php echo esc_attr($settings['show_loc']); ?>"
