@@ -33,11 +33,12 @@ class ElementorWidget extends Widget_Base {
         ]);
 
         $this->add_control('calendar_id', [
-            'label'   => __( 'Választott naptár', 'o365-calendar' ),
-            'type'    => Controls_Manager::SELECT2,
-            'options' => $calendars,
+            'label'       => __( 'Naptárak Kiválasztása', 'o365-calendar' ),
+            'type'        => Controls_Manager::SELECT2,
+            'options'     => $calendars,
+            'multiple'    => true, // ETTŐL LESZ MULTI-SELECT!
             'label_block' => true,
-            'separator' => 'before'
+            'separator'   => 'before'
         ]);
 
         $this->add_control('resync_trigger', [
@@ -223,9 +224,12 @@ class ElementorWidget extends Widget_Base {
     protected function render() {
         $settings = $this->get_settings_for_display();
         $email = get_option( 'o365_auth_email', '' );
-        $cal_id = $settings['calendar_id'] ?? '';
+        
+        $cal_id = '';
+        if ( ! empty( $settings['calendar_id'] ) ) {
+            $cal_id = is_array( $settings['calendar_id'] ) ? implode( ',', $settings['calendar_id'] ) : $settings['calendar_id'];
+        }
 
-        // Tömbből stringgé alakítjuk a nézeteket (hogy a JS könnyen beolvassa)
         $vd = !empty($settings['views_desktop']) ? implode(',', $settings['views_desktop']) : 'dayGridMonth';
         $vt = !empty($settings['views_tablet']) ? implode(',', $settings['views_tablet']) : 'timeGridWeek';
         $vm = !empty($settings['views_mobile']) ? implode(',', $settings['views_mobile']) : 'listMonth';
@@ -234,13 +238,10 @@ class ElementorWidget extends Widget_Base {
         <div class="o365-fullcalendar-container" 
              data-email="<?php echo esc_attr($email); ?>" 
              data-calendar-id="<?php echo esc_attr($cal_id); ?>" 
-             
              data-views-desktop="<?php echo esc_attr($vd); ?>"
              data-default-desktop="<?php echo esc_attr($settings['default_desktop'] ?? 'dayGridMonth'); ?>"
-             
              data-views-tablet="<?php echo esc_attr($vt); ?>"
              data-default-tablet="<?php echo esc_attr($settings['default_tablet'] ?? 'timeGridWeek'); ?>"
-             
              data-views-mobile="<?php echo esc_attr($vm); ?>"
              data-default-mobile="<?php echo esc_attr($settings['default_mobile'] ?? 'listMonth'); ?>">
         </div>

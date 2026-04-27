@@ -44,58 +44,71 @@ class AjaxHandlers {
 
     public function verify_auth_code( $request ) {
         $email = sanitize_email( $request->get_param( 'email' ) );
-        $code  = sanitize_text_field( $request->get_param( 'code' ) );
+        $code = sanitize_text_field( $request->get_param( 'code' ) );
         $saved = get_transient( 'o365_auth_' . md5( $email ) );
 
-        if ( ! $saved || $saved !== $code ) {
-            return new \WP_REST_Response( [ 'message' => 'Hibás kód.' ], 400 );
-        }
+        if ( ! $saved || $saved !== $code ) return new WP_REST_Response( [ 'message' => 'Hibás kód.' ], 400 );
 
         $calendars = $this->api->get_calendars( $email );
-        if ( is_wp_error( $calendars ) ) {
-            return new \WP_REST_Response( [ 'message' => $calendars->get_error_message() ], 400 );
-        }
+        if ( is_wp_error( $calendars ) ) return new WP_REST_Response( [ 'message' => $calendars->get_error_message() ], 400 );
 
         $list = [];
-        foreach ( $calendars['value'] as $cal ) {
-            $list[ $cal['id'] ] = $cal['name'];
-        }
+        foreach ( $calendars['value'] as $cal ) { $list[$cal['id']] = $cal['name']; }
 
-        // LEMENTJÜK A NAPTÁRAKAT GLOBÁLISAN
         update_option( 'o365_cached_calendars', $list );
         update_option( 'o365_auth_email', $email );
 
-        return new \WP_REST_Response( [ 'calendars' => $list, 'message' => 'Sikeres hitelesítés! Az oldalsáv újratöltődik...' ], 200 );
+        return new WP_REST_Response( [ 'calendars' => $list, 'message' => 'Sikeres hitelesítés! Az oldalsáv újratöltődik...' ], 200 );
     }
 
     public function get_calendar_events( $request ) {
         $email = sanitize_email( $request->get_param( 'email' ) );
-        $calendar_id = $request->get_param( 'calendar_id' );
         
-        // FullCalendar ISO dátumok tisztítása (Microsoft nem szereti a +02:00 részt néha)
+        // Multi-calendar: Lehet hogy egy ID, lehet hogy vesszővel elválasztva több.
+        $calendar_ids_raw = $request->get_param( 'calendar_id' );
+        $calendar_ids = explode(',', $calendar_ids_raw);
+        
         $start = date('Y-m-d\TH:i:s\Z', strtotime($request->get_param('start')));
         $end   = date('Y-m-d\TH:i:s\Z', strtotime($request->get_param('end')));
 
-        $events = $this->api->get_events( $email, $calendar_id, $start, $end );
-
-        if ( is_wp_error( $events ) ) {
-            return new WP_REST_Response( [ 'message' => $events->get_error_message() ], 400 );
+        // Szerver-oldali Cache beállítása (15 perc)
+        $cache_key = 'o365_events_' . md5( $email . $calendar_ids_raw . $start . $end );
+        $cached_events = get_transient( $cache_key );
+        
+        if ( $cached_events !== false ) {
+            return new WP_REST_Response( $cached_events, 200 );
         }
 
-        $formatted = [];
-        foreach ( (array)$events as $event ) {
-            $formatted[] = [
-                'id'    => $event['id'],
-                'title' => $event['subject'],
-                'start' => $event['start']['dateTime'],
-                'end'   => $event['end']['dateTime'],
-                'allDay' => $event['isAllDay'],
-                'extendedProps' => [
-                    'location' => $event['location']['displayName'] ?? '',
-                    'body' => $event['bodyPreview'] ?? ''
-                ]
-            ];
+        $all_events = [];
+
+        // Minden kiválasztott naptárból lekérjük az eseményeket
+        foreach ( $calendar_ids as $cal_id ) {
+            if ( empty( trim($cal_id) ) ) continue;
+
+            $events = $this->api->get_events( $email, trim($cal_id), $start, $end );
+            
+            if ( is_wp_error( $events ) ) {
+                return new WP_REST_Response( [ 'message' => $events->get_error_message() ], 400 );
+            }
+
+            foreach ( (array)$events as $event ) {
+                $all_events[] = [
+                    'id'    => $event['id'],
+                    'title' => $event['subject'],
+                    'start' => $event['start']['dateTime'],
+                    'end'   => $event['end']['dateTime'],
+                    'allDay' => $event['isAllDay'],
+                    'extendedProps' => [
+                        'location' => $event['location']['displayName'] ?? '',
+                        'body' => $event['bodyPreview'] ?? ''
+                    ]
+                ];
+            }
         }
-        return new WP_REST_Response( $formatted, 200 );
+
+        // Elmentjük a cache-be 15 percre
+        set_transient( $cache_key, $all_events, 15 * MINUTE_IN_SECONDS );
+
+        return new WP_REST_Response( $all_events, 200 );
     }
 }
