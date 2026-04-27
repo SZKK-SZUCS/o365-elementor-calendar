@@ -49,15 +49,14 @@ class AjaxHandlers {
 
         if ( ! $saved || $saved !== $code ) return new \WP_REST_Response( [ 'message' => 'Hibás kód.' ], 400 );
 
-        // 1. NAPTÁRAK LEKÉRÉSE ÉS MENTÉSE
+        // 1. Naptárak lekérése
         $calendars = $this->api->get_calendars( $email );
         if ( is_wp_error( $calendars ) ) return new \WP_REST_Response( [ 'message' => $calendars->get_error_message() ], 400 );
 
         $cal_list = [];
         foreach ( $calendars['value'] as $cal ) { $cal_list[$cal['id']] = $cal['name']; }
-        update_option( 'o365_cached_calendars', $cal_list );
 
-        // 2. KATEGÓRIÁK LEKÉRÉSE ÉS MENTÉSE (ÚJ RÉSZ)
+        // 2. Kategóriák lekérése
         $categories = $this->api->get_master_categories( $email );
         $cat_list = [];
         if ( ! is_wp_error( $categories ) && isset($categories['value']) ) {
@@ -65,14 +64,20 @@ class AjaxHandlers {
                 $cat_list[ $cat['displayName'] ] = $cat['displayName'];
             }
         }
-        update_option( 'o365_cached_categories', $cat_list );
-        update_option( 'o365_auth_email', $email );
+
+        // 3. Fiókok globális tárolása (Hozzáadás/Frissítés)
+        $accounts = get_option( 'o365_accounts', [] );
+        $accounts[ $email ] = [
+            'calendars'  => $cal_list,
+            'categories' => $cat_list,
+            'updated_at' => current_time('mysql')
+        ];
+        update_option( 'o365_accounts', $accounts );
 
         return new \WP_REST_Response( [ 'message' => 'Sikeres hitelesítés! Az oldalsáv újratöltődik...' ], 200 );
     }
 
     public function get_calendar_events( $request ) {
-        $email = sanitize_email( $request->get_param( 'email' ) );
         $calendar_ids_raw = $request->get_param( 'calendar_id' );
         $calendar_ids = explode(',', $calendar_ids_raw);
         
@@ -82,62 +87,58 @@ class AjaxHandlers {
         $use_colors = $request->get_param( 'use_colors' ) === 'yes';
         $privacy    = $request->get_param( 'privacy' ) ?: 'mask';
         
-        // ÚJ ADATOK FELDOLGOZÁSA
         $mask_text       = sanitize_text_field( $request->get_param( 'mask_text' ) ?: 'Foglalt' );
         $category_filter = sanitize_text_field( $request->get_param( 'category_filter' ) ?: '' );
 
-        $cache_key = 'o365_events_' . md5( $email . $calendar_ids_raw . $start . $end . $use_colors . $privacy . $mask_text . $category_filter );
+        // A cache kulcsból kikerül a sima email, mert a calendar_id már tartalmazza
+        $cache_key = 'o365_events_' . md5( $calendar_ids_raw . $start . $end . $use_colors . $privacy . $mask_text . $category_filter );
         $cached_events = get_transient( $cache_key );
         
         if ( $cached_events !== false ) {
             return new \WP_REST_Response( $cached_events, 200 );
         }
 
-        // Szín-térkép felépítése (ha kell)
-        $color_map = [];
-        if ( $use_colors ) {
-            $cat_cache_key = 'o365_categories_' . md5($email);
-            $color_map = get_transient( $cat_cache_key );
-            if ( false === $color_map ) {
-                $color_map = [];
-                $cat_response = $this->api->get_master_categories( $email );
-                if ( ! is_wp_error( $cat_response ) && isset($cat_response['value']) ) {
-                    foreach ( $cat_response['value'] as $cat ) {
-                        $color_map[ $cat['displayName'] ] = $this->map_preset_color( $cat['color'] );
-                    }
-                }
-                set_transient( $cat_cache_key, $color_map, 12 * HOUR_IN_SECONDS );
-            }
-        }
-
         $all_events = [];
-
-        // Szűrő tömb előkészítése kisbetűssé és whitespace mentessé
         $filter_arr = [];
         if ( ! empty( $category_filter ) ) {
             $filter_arr = array_filter( array_map( 'trim', array_map( 'strtolower', explode( ',', $category_filter ) ) ) );
         }
 
-        foreach ( $calendar_ids as $cal_id ) {
-            if ( empty( trim($cal_id) ) ) continue;
+        // Több fiók naptárait fésüljük össze
+        foreach ( $calendar_ids as $combo ) {
+            if ( empty( trim($combo) ) || strpos($combo, '|') === false ) continue;
+            
+            // Szétválasztjuk a kombinált ID-t emailre és naptár ID-ra
+            list( $email, $cal_id ) = explode('|', trim($combo), 2);
+
+            // Szín-térkép felépítése fiókonként
+            $color_map = [];
+            if ( $use_colors ) {
+                $cat_cache_key = 'o365_categories_' . md5($email);
+                $color_map = get_transient( $cat_cache_key );
+                if ( false === $color_map ) {
+                    $color_map = [];
+                    $cat_response = $this->api->get_master_categories( $email );
+                    if ( ! is_wp_error( $cat_response ) && isset($cat_response['value']) ) {
+                        foreach ( $cat_response['value'] as $cat ) {
+                            $color_map[ $cat['displayName'] ] = $this->map_preset_color( $cat['color'] );
+                        }
+                    }
+                    set_transient( $cat_cache_key, $color_map, 12 * HOUR_IN_SECONDS );
+                }
+            }
+
             $events = $this->api->get_events( $email, trim($cal_id), $start, $end );
-            if ( is_wp_error( $events ) ) return new \WP_REST_Response( [ 'message' => $events->get_error_message() ], 400 );
+            if ( is_wp_error( $events ) ) continue; // Ne fagyjon le, ha csak 1 fióknál van gond
 
             foreach ( (array)$events as $event ) {
-                
-                // 1. KATEGÓRIA SZŰRÉS
                 $event_categories = $event['categories'] ?? [];
                 if ( ! empty( $filter_arr ) ) {
                     $event_cat_arr = array_map( 'strtolower', (array) $event_categories );
                     $intersect = array_intersect( $filter_arr, $event_cat_arr );
-                    
-                    // Ha az eseménynek nincs egyetlen olyan kategóriája sem, amit beállítottunk, ugrunk a következőre.
-                    if ( empty( $intersect ) ) {
-                        continue; 
-                    }
+                    if ( empty( $intersect ) ) continue; 
                 }
 
-                // 2. PRIVÁT ESEMÉNYEK KEZELÉSE
                 $sensitivity = $event['sensitivity'] ?? 'normal';
                 $is_private = in_array( strtolower($sensitivity), ['private', 'confidential'] );
 
@@ -147,7 +148,6 @@ class AjaxHandlers {
                 $location = $event['location']['displayName'] ?? '';
                 $body = $event['bodyPreview'] ?? '';
 
-                // A felhasználó által megadott egyedi maszkoló szöveget használjuk
                 if ( $is_private && $privacy === 'mask' ) {
                     $title = $mask_text;
                     $location = '';

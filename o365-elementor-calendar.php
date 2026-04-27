@@ -29,7 +29,8 @@ add_action( 'plugins_loaded', function() {
 
 // Elementor Widget regisztrálása
 add_action( 'elementor/widgets/register', function( $widgets_manager ) {
-    $widgets_manager->register( new ElementorWidget() );
+    $widgets_manager->register( new \O365Calendar\ElementorWidget() );
+    $widgets_manager->register( new \O365Calendar\AgendaWidget() );
 });
 
 add_action( 'elementor/frontend/after_register_scripts', function() {

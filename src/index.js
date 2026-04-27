@@ -10,7 +10,6 @@ class O365CalendarWidget {
     this.container = $scope.find(".o365-fullcalendar-container")[0];
     if (!this.container) return;
 
-    this.email = this.container.dataset.email;
     this.calendarId = this.container.dataset.calendarId;
 
     // Idő és Dátum korlátok beolvasása
@@ -152,7 +151,7 @@ class O365CalendarWidget {
       initialView: cfg.default,
       displayEventTime: this.displayEventTime,
       locale: huLocale,
-      timeZone: "local",
+      timeZone: this.container.dataset.timezone || "local",
 
       height: "100%",
       expandRows: true,
@@ -220,9 +219,7 @@ class O365CalendarWidget {
     if (this.eventCache[cacheKey])
       return successCallback(this.filterEvents(this.eventCache[cacheKey]));
 
-    const url = `/wp-json/o365cal/v1/events?email=${encodeURIComponent(
-      this.email,
-    )}&calendar_id=${encodeURIComponent(
+    const url = `/wp-json/o365cal/v1/events?calendar_id=${encodeURIComponent(
       this.calendarId,
     )}&start=${encodeURIComponent(info.startStr)}&end=${encodeURIComponent(
       info.endStr,
@@ -444,6 +441,141 @@ class O365CalendarWidget {
     };
   }
 }
+
+class O365AgendaWidget {
+  constructor($scope) {
+    this.container = $scope.find(".o365-agenda-container")[0];
+    if (!this.container) return;
+
+    this.calendarId = this.container.dataset.calendarId;
+    this.limit = parseInt(this.container.dataset.limit) || 5;
+    this.catFilter = this.container.dataset.categoryFilter || "";
+
+    if (!this.calendarId) {
+      this.container.innerHTML =
+        '<div class="o365-empty">Válassz legalább egy naptárat a beállításokban!</div>';
+      return;
+    }
+
+    this.config = {
+      date: this.container.dataset.showDate === "yes",
+      time: this.container.dataset.showTime === "yes",
+      loc: this.container.dataset.showLoc === "yes",
+      desc: this.container.dataset.showDesc === "yes",
+      export: this.container.dataset.showExport === "yes",
+    };
+
+    this.loadAgenda();
+  }
+
+  loadAgenda() {
+    const start = new Date().toISOString();
+    const end = new Date(
+      new Date().getTime() + 60 * 24 * 60 * 60 * 1000,
+    ).toISOString();
+
+    // Frissített URL email paraméter nélkül, mert a calendarId-ben benne van (email|id formában)
+    const url = `/wp-json/o365cal/v1/events?calendar_id=${encodeURIComponent(
+      this.calendarId,
+    )}&start=${start}&end=${end}&category_filter=${encodeURIComponent(
+      this.catFilter,
+    )}`;
+
+    fetch(url)
+      .then((res) => res.json())
+      .then((events) => {
+        this.renderAgenda(events.slice(0, this.limit));
+      })
+      .catch(() => {
+        this.container.innerHTML =
+          '<div class="o365-error">Hiba a betöltéskor. Ellenőrizd a naptár párosítást!</div>';
+      });
+  }
+
+  renderAgenda(events) {
+    if (!events || !events.length) {
+      this.container.innerHTML =
+        '<div class="o365-empty">Nincsenek közelgő események.</div>';
+      return;
+    }
+
+    let html = '<div class="o365-agenda-list">';
+    events.forEach((event, idx) => {
+      const startDate = new Date(event.start);
+      const dateStr = startDate.toLocaleDateString("hu-HU", {
+        month: "short",
+        day: "numeric",
+      });
+      const timeStr = startDate.toLocaleTimeString("hu-HU", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+
+      html += `
+        <div class="o365-agenda-item">
+          <div class="agenda-meta">
+            ${
+              this.config.date
+                ? `<span class="agenda-date">${dateStr}</span>`
+                : ""
+            }
+            ${
+              this.config.time
+                ? `<span class="agenda-time">${timeStr}</span>`
+                : ""
+            }
+          </div>
+          <div class="agenda-content">
+            <div class="agenda-title">${event.title}</div>
+            ${
+              this.config.loc && event.extendedProps.location
+                ? `<div class="agenda-loc">📍 ${event.extendedProps.location}</div>`
+                : ""
+            }
+            ${
+              this.config.desc && event.extendedProps.body
+                ? `<div class="agenda-desc">${event.extendedProps.body}</div>`
+                : ""
+            }
+          </div>
+          ${
+            this.config.export
+              ? `
+            <div class="agenda-actions">
+              <button class="o365-agenda-export" title="Letöltés naptárba" data-idx="${idx}">
+                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              </button>
+            </div>
+          `
+              : ""
+          }
+        </div>
+      `;
+    });
+    html += "</div>";
+    this.container.innerHTML = html;
+
+    // Export gombok bekötése az eseményekhez
+    this.container.querySelectorAll(".o365-agenda-export").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        const index = e.currentTarget.dataset.idx;
+        // Dummy widget példány az export funkció eléréséhez
+        const exporter = new O365CalendarWidget(jQuery(this.container));
+        exporter.downloadICal(events[index]);
+      });
+    });
+  }
+}
+
+// Inicializálás az Elementorban
+jQuery(window).on("elementor/frontend/init", () => {
+  elementorFrontend.hooks.addAction(
+    "frontend/element_ready/o365_agenda.default",
+    ($scope) => {
+      new O365AgendaWidget($scope);
+    },
+  );
+});
 
 jQuery(window).on("elementor/frontend/init", () => {
   elementorFrontend.hooks.addAction(
