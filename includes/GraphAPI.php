@@ -92,18 +92,23 @@ class GraphAPI {
     }
 
     public function get_events( $user_email, $calendar_id, $start_date, $end_date ) {
-        // A Microsoft a calendarView-nál ISO dátumokat vár, de tiszta formában
         $params = [
             'startDateTime' => $start_date,
             'endDateTime'   => $end_date,
-            '$select'       => 'id,subject,start,end,bodyPreview,location,isAllDay',
-            '$top'          => 100
+            // ITT BŐVÜLT: Hozzáadtuk a categories és sensitivity lekérését
+            '$select'       => 'id,subject,start,end,bodyPreview,location,isAllDay,categories,sensitivity',
+            '$top'          => 500
         ];
 
         $endpoint = "/users/" . urlencode($user_email) . "/calendars/" . urlencode($calendar_id) . "/calendarView";
         $result = $this->request( 'GET', $endpoint, $params );
 
         return ( ! is_wp_error( $result ) && isset( $result['value'] ) ) ? $result['value'] : $result;
+    }
+
+    // ÚJ METÓDUS: A fiók kategóriáinak (és színeinek) lekérése
+    public function get_master_categories( $email ) {
+        return $this->request( 'GET', "/users/" . urlencode($email) . "/outlook/masterCategories" );
     }
 
     public function send_verification_email( $to_email, $code ) {

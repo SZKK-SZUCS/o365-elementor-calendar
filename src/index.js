@@ -18,6 +18,11 @@ class O365CalendarWidget {
     this.slotMax = this.container.dataset.slotMax || "24:00:00";
     this.validStart = this.container.dataset.validStart || null;
     this.validEnd = this.container.dataset.validEnd || null;
+    this.privacy = this.container.dataset.privacy || "mask";
+    this.maskText = this.container.dataset.maskText || "Foglalt";
+    this.categoryFilter = this.container.dataset.categoryFilter || "";
+    this.useColors = this.container.dataset.useColors || "yes";
+    this.displayEventTime = this.container.dataset.displayEventTime === "yes";
 
     this.eventCache = {};
     this.searchTerm = "";
@@ -145,6 +150,7 @@ class O365CalendarWidget {
     this.calendar = new Calendar(this.container, {
       plugins: [dayGridPlugin, timeGridPlugin, listPlugin],
       initialView: cfg.default,
+      displayEventTime: this.displayEventTime,
       locale: huLocale,
       timeZone: "local",
 
@@ -220,7 +226,11 @@ class O365CalendarWidget {
       this.calendarId,
     )}&start=${encodeURIComponent(info.startStr)}&end=${encodeURIComponent(
       info.endStr,
-    )}`;
+    )}&privacy=${this.privacy}&mask_text=${encodeURIComponent(
+      this.maskText,
+    )}&category_filter=${encodeURIComponent(this.categoryFilter)}&use_colors=${
+      this.useColors
+    }`;
 
     fetch(url)
       .then((res) => res.json())
@@ -299,11 +309,12 @@ class O365CalendarWidget {
   openModal(event) {
     this.hideTooltip();
     this.currentOpenEvent = event;
-    const popoverCloseBtn = document.querySelector(".fc-popover-close");
-    if (popoverCloseBtn) {
-      popoverCloseBtn.click();
-    }
-    this.modalTitle.textContent = event.title;
+
+    const isPrivate = event.extendedProps?.isPrivate;
+    const lockIcon = isPrivate
+      ? `<svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" style="vertical-align: middle; margin-right: 8px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>`
+      : "";
+    this.modalTitle.innerHTML = lockIcon + event.title;
 
     const opt = {
       month: "short",
@@ -328,15 +339,21 @@ class O365CalendarWidget {
 
     this.modalTime.textContent = timeStr;
     const loc = event.extendedProps?.location;
-    if (loc) {
+    if (loc && !isPrivate) {
       this.modalLocTxt.textContent = loc;
       this.modalLocWrap.style.display = "flex";
     } else {
       this.modalLocWrap.style.display = "none";
     }
 
-    this.modalDesc.innerHTML =
-      event.extendedProps?.body || "<em>Nincs megadva leírás.</em>";
+    this.modalDesc.innerHTML = isPrivate
+      ? "<em>Ez az esemény privátként lett megjelölve.</em>"
+      : event.extendedProps?.body || "<em>Nincs megadva leírás.</em>";
+
+    // Export gomb elrejtése privát eseménynél
+    if (this.exportBtn)
+      this.exportBtn.style.display = isPrivate ? "none" : "inline-block";
+
     this.modalOverlay.style.visibility = "visible";
     this.modalOverlay.style.opacity = "1";
   }

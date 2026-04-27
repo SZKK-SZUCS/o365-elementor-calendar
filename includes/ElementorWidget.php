@@ -77,6 +77,58 @@ class ElementorWidget extends Widget_Base {
 
         $this->end_controls_section();
 
+        // --- EXTRA FUNKCIÓK ---
+        $this->start_controls_section('features_section', [
+            'label' => __( 'Extra Funkciók', 'o365-calendar' ),
+            'tab'   => Controls_Manager::TAB_CONTENT,
+        ]);
+
+        $this->add_control('display_event_time', [
+            'label'   => 'Időpont mutatása a naptárban',
+            'type'    => Controls_Manager::SWITCHER,
+            'default' => 'yes',
+            'description' => 'Ha kikapcsolod, csak az esemény címe fog látszódni a naptár rácsaiban.',
+        ]);
+
+        $this->add_control('privacy_mode', [
+            'label' => 'Privát események',
+            'type' => Controls_Manager::SELECT,
+            'default' => 'mask',
+            'options' => [
+                'show' => 'Minden adat látszik',
+                'mask' => 'Maszkolás',
+                'hide' => 'Teljes elrejtés',
+            ],
+        ]);
+
+        $this->add_control('privacy_mask_text', [
+            'label' => 'Maszkolt esemény szövege',
+            'type' => Controls_Manager::TEXT,
+            'default' => 'Foglalt',
+            'condition' => [ 'privacy_mode' => 'mask' ],
+        ]);
+
+        // ÚJ SELECT2 KATEGÓRIA VÁLASZTÓ
+        $cached_categories = get_option( 'o365_cached_categories', [] );
+        $this->add_control('category_filter', [
+            'label'       => __( 'Kategória szűrés', 'o365-calendar' ),
+            'type'        => Controls_Manager::SELECT2,
+            'options'     => $cached_categories,
+            'multiple'    => true,
+            'label_block' => true,
+            'separator'   => 'before',
+            'description' => 'Válaszd ki a kategóriákat. Üresen hagyva minden látszik.'
+        ]);
+
+        $this->add_control('use_o365_colors', [
+            'label' => 'O365 Kategória-színek használata',
+            'type' => Controls_Manager::SWITCHER,
+            'default' => 'yes',
+            'separator' => 'before'
+        ]);
+
+        $this->end_controls_section();
+
         // --- NÉZETEK ÉS RESZPONZIVITÁS ---
         $this->start_controls_section('views_section', ['label' => __( 'Nézetek (Reszponzív)', 'o365-calendar' ), 'tab' => Controls_Manager::TAB_CONTENT]);
         $view_options = ['dayGridMonth' => 'Havi Naptár', 'timeGridWeek' => 'Heti Naptár', 'listWeek' => 'Heti Lista', 'listMonth' => 'Havi Lista'];
@@ -140,16 +192,14 @@ class ElementorWidget extends Widget_Base {
     protected function render() {
         $settings = $this->get_settings_for_display();
         $email = get_option( 'o365_auth_email', '' );
+        
         $cal_id = !empty($settings['calendar_id']) ? (is_array($settings['calendar_id']) ? implode(',', $settings['calendar_id']) : $settings['calendar_id']) : '';
-
-        $vd = !empty($settings['views_desktop']) ? implode(',', $settings['views_desktop']) : 'dayGridMonth';
-        $vt = !empty($settings['views_tablet']) ? implode(',', $settings['views_tablet']) : 'timeGridWeek';
-        $vm = !empty($settings['views_mobile']) ? implode(',', $settings['views_mobile']) : 'listMonth';
+        $cat_filter = !empty($settings['category_filter']) ? implode(',', $settings['category_filter']) : '';
 
         ?>
         <div class="o365-fullcalendar-container" 
              data-email="<?php echo esc_attr($email); ?>" 
-             data-calendar-id="<?php echo esc_attr($cal_id); ?>" 
+             data-calendar-id="<?php echo esc_attr($cal_id); ?>"
              
              data-views-desktop="<?php echo esc_attr($vd); ?>"
              data-default-desktop="<?php echo esc_attr($settings['default_desktop'] ?? 'dayGridMonth'); ?>"
@@ -161,7 +211,12 @@ class ElementorWidget extends Widget_Base {
              data-slot-min="<?php echo esc_attr($settings['slot_min_time'] ?? '00:00:00'); ?>"
              data-slot-max="<?php echo esc_attr($settings['slot_max_time'] ?? '24:00:00'); ?>"
              data-valid-start="<?php echo esc_attr($settings['valid_start'] ?? ''); ?>"
-             data-valid-end="<?php echo esc_attr($settings['valid_end'] ?? ''); ?>">
+             data-valid-end="<?php echo esc_attr($settings['valid_end'] ?? ''); ?>"
+             
+             data-privacy="<?php echo esc_attr($settings['privacy_mode'] ?? 'mask'); ?>"
+             data-mask-text="<?php echo esc_attr($settings['privacy_mask_text'] ?? 'Foglalt'); ?>"
+             data-category-filter="<?php echo esc_attr($cat_filter); ?>"
+             data-display-event-time="<?php echo esc_attr($settings['display_event_time']); ?>">
         </div>
         <?php
     }
