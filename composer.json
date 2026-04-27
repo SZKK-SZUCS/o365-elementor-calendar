@@ -1,0 +1,19 @@
+{
+  "name": "szuro/o365-elementor-calendar",
+  "description": "O365 Calendar for Elementor",
+  "type": "wordpress-plugin",
+  "authors": [
+    {
+      "name": "szurofkamarcii",
+      "email": "szurofkamarcii@gmail.com"
+    }
+  ],
+  "require": {
+    "yahnis-elsts/plugin-update-checker": "^5.6"
+  },
+  "autoload": {
+    "psr-4": {
+      "O365Calendar\\": "includes/"
+    }
+  }
+}
