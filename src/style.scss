@@ -1,19 +1,30 @@
-// 1. FŐ KONTÉNER ÉS FLEXBOX LAYOUT (Garantált magasság és belső scroll)
+// =========================================
+// VÁLTOZÓK (Márka színek és Tipográfia)
+// =========================================
+$brand-deep: #242943;
+$brand-cyan: #50adc9;
+$tahoma: "Tahoma", "Geneva", sans-serif;
+
+// =========================================
+// 1. FŐ KONTÉNER ÉS FLEXBOX LAYOUT
+// =========================================
 .o365-calendar-wrapper {
   display: flex;
   flex-direction: column;
-  /* A magasság az Elementorból jön CSS változóként, alapból 650px */
+  /* A magasság az Elementorból jön CSS változóként */
   height: var(--o365-cal-height, 650px);
+  max-width: 1200px; // Nem engedi, hogy végtelenül széles legyen
+  margin: 0 auto;
   position: relative;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
-    Arial, sans-serif;
+  font-family: inherit; // Alapból az Elementorét örökli
   border-radius: 8px;
-  overflow: hidden; // Ne folyjon ki semmi a dobozból
+  overflow: hidden;
   background-color: transparent;
+  transition: all 0.3s ease;
 
   // --- KERESŐMEZŐ ---
   .o365-calendar-header-tools {
-    flex-shrink: 0; // A kereső nem mehet össze
+    flex-shrink: 0;
     padding: 15px 15px 0 15px;
     display: flex;
     justify-content: flex-end;
@@ -39,20 +50,22 @@
         outline: none;
         transition: all 0.3s ease;
         font-size: 14px;
+        background: #fff;
+        color: #333;
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.02);
 
         &:focus {
-          border-color: #0073aa;
-          box-shadow: 0 0 0 3px rgba(0, 115, 170, 0.1);
+          border-color: $brand-cyan;
+          box-shadow: 0 0 0 3px rgba($brand-cyan, 0.1);
         }
       }
     }
   }
 
-  // --- MAGA A NAPTÁR (Ez veszi fel a maradék helyet) ---
+  // --- MAGA A NAPTÁR ---
   .o365-fullcalendar-container {
-    flex-grow: 1; // Kitölti a maradék helyet
-    min-height: 0; // KÖTELEZŐ! Ez engedi a belső overflow-t a flexboxban
+    flex-grow: 1;
+    min-height: 0; // KÖTELEZŐ Flexboxnál a belső görgetéshez!
     padding: 15px;
   }
 
@@ -75,7 +88,7 @@
       width: 40px;
       height: 40px;
       border: 4px solid #f3f3f3;
-      border-top: 4px solid #0073aa;
+      border-top: 4px solid $brand-cyan;
       border-radius: 50%;
       animation: o365-spin 1s linear infinite;
     }
@@ -83,7 +96,7 @@
 
   // --- ESEMÉNY MODAL (Felugró ablak) ---
   .o365-event-modal-overlay {
-    position: absolute; // Az Elementor wrapper-hez igazodik!
+    position: absolute;
     top: 0;
     left: 0;
     right: 0;
@@ -137,7 +150,7 @@
       }
 
       .o365-modal-meta {
-        background: #f8f9fa;
+        background: rgba(0, 0, 0, 0.03);
         padding: 15px;
         border-radius: 8px;
         margin-bottom: 20px;
@@ -148,12 +161,11 @@
           display: flex;
           align-items: center;
           gap: 10px;
-
           &.loc {
             margin-top: 10px;
           }
           svg {
-            color: #0073aa;
+            color: $brand-cyan;
             flex-shrink: 0;
           }
         }
@@ -163,13 +175,12 @@
         color: #444;
         font-size: 15px;
         line-height: 1.6;
-
         p {
           margin-top: 0;
           margin-bottom: 1em;
         }
         a {
-          color: #0073aa;
+          color: $brand-cyan;
           text-decoration: underline;
         }
       }
@@ -177,12 +188,121 @@
   }
 }
 
-// 2. FULLCALENDAR ALAP STÍLUSOK FELÜLÍRÁSA
+// =========================================
+// 2. DESIGN SABLONOK (Prefix Classes)
+// =========================================
+
+// --- SABLON: VILÁGOS (Light) ---
+.o365-template-light {
+  .o365-calendar-wrapper {
+    background-color: #ffffff;
+    font-family: $tahoma !important;
+    color: $brand-deep;
+  }
+  .fc-event {
+    background-color: $brand-cyan !important;
+    color: #ffffff !important;
+    border: none;
+  }
+  .fc-button-primary {
+    background-color: $brand-cyan !important;
+    border: none;
+  }
+  .fc-day-today {
+    background-color: rgba($brand-cyan, 0.05) !important;
+  }
+}
+
+// --- SABLON: SÖTÉT (Dark / Deep Blue) ---
+.o365-template-dark {
+  .o365-calendar-wrapper {
+    background-color: $brand-deep;
+    font-family: $tahoma !important;
+    color: #ffffff;
+  }
+  .fc-toolbar-title,
+  .fc-col-header-cell-cushion,
+  .fc-daygrid-day-number,
+  .fc-list-event-time,
+  .fc-list-event-title {
+    color: #ffffff !important;
+  }
+  .fc-theme-standard td,
+  .fc-theme-standard th {
+    border-color: rgba(255, 255, 255, 0.15) !important;
+  }
+  .fc-event {
+    background-color: $brand-cyan !important;
+    color: #ffffff !important;
+    border: none;
+  }
+  .fc-button-primary {
+    background-color: $brand-cyan !important;
+    border: none;
+    color: #ffffff !important;
+    font-family: $tahoma;
+  }
+  .fc-list-day-cushion {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    color: #fff !important;
+  }
+  .fc-list-event:hover td {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+  }
+  .fc-empty-message {
+    color: rgba(255, 255, 255, 0.6) !important;
+  }
+
+  // Kereső invertálása
+  .o365-search-input {
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: #fff !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  }
+  .o365-search-input::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+  }
+  .search-icon {
+    color: rgba(255, 255, 255, 0.5) !important;
+  }
+}
+
+// --- SABLON: MODERN (Minimalista) ---
+.o365-template-modern {
+  .o365-calendar-wrapper {
+    border-radius: 20px;
+    box-shadow: 0 15px 50px rgba(0, 0, 0, 0.05);
+    background-color: #fff;
+  }
+  .fc-theme-standard td,
+  .fc-theme-standard th {
+    border: 1px solid #f9f9f9 !important;
+  }
+  .fc-button {
+    border-radius: 50px !important;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 12px !important;
+  }
+  .fc-event {
+    border-radius: 12px !important;
+    padding: 4px 8px !important;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+  }
+  .fc-daygrid-day {
+    background: #fdfdfd;
+    margin: 2px;
+    border-radius: 8px;
+  }
+}
+
+// =========================================
+// 3. FULLCALENDAR ALAP STÍLUSOK FELÜLÍRÁSA
+// =========================================
 .fc {
   .fc-toolbar {
     flex-wrap: wrap;
     gap: 10px;
-
     .fc-button-primary {
       background-color: #f8f9fa;
       border-color: #ddd;
@@ -190,18 +310,16 @@
       text-transform: capitalize;
       transition: all 0.2s ease;
       border-radius: 6px;
-
       &:hover,
       &:not(:disabled):active,
       &.fc-button-active {
-        background-color: #0073aa;
-        border-color: #0073aa;
+        background-color: $brand-cyan;
+        border-color: $brand-cyan;
         color: #fff;
-        box-shadow: 0 4px 8px rgba(0, 115, 170, 0.2);
+        box-shadow: 0 4px 8px rgba($brand-cyan, 0.2);
       }
-
       &:focus {
-        box-shadow: 0 0 0 0.2rem rgba(0, 115, 170, 0.25);
+        box-shadow: 0 0 0 0.2rem rgba($brand-cyan, 0.25);
       }
     }
   }
@@ -215,13 +333,11 @@
       transform 0.15s ease,
       box-shadow 0.15s ease;
     cursor: pointer;
-
     &:hover {
       transform: translateY(-2px);
       box-shadow: 0 5px 10px rgba(0, 0, 0, 0.15);
       z-index: 5;
     }
-
     .fc-event-time {
       font-weight: bold;
       opacity: 0.9;
@@ -244,41 +360,45 @@
   }
 }
 
-// 3. HOVER INFO KÁRTYA (Tooltip)
-// (Ez a wrapperen KÍVÜL van, mert a body-hoz csatoljuk a JS-ben, hogy ne vágja le az overflow:hidden)
+// =========================================
+// 4. HOVER INFO KÁRTYA (Tooltip)
+// Ezt a body-ba fűzi a JS, ezért kell a wrapperen kívül lennie!
+// =========================================
 .o365-calendar-tooltip {
   position: absolute;
   z-index: 99999;
-  background: #222;
+  background: $brand-deep;
   color: #fff;
   padding: 12px 15px;
   border-radius: 8px;
   font-size: 13px;
+  font-family: $tahoma;
   pointer-events: none;
   display: none;
   opacity: 0;
   transition: opacity 0.2s;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
   max-width: 250px;
+  border-left: 4px solid $brand-cyan;
 
   .tooltip-title {
     font-weight: bold;
+    font-size: 14px;
     margin-bottom: 5px;
-    border-bottom: 1px solid #444;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     padding-bottom: 5px;
   }
 
   .tooltip-time {
-    color: #aaa;
-    font-size: 11px;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 12px;
   }
   .tooltip-loc {
-    color: #0073aa;
+    color: $brand-cyan;
     margin-top: 5px;
   }
 }
 
-// 4. ANIMÁCIÓ
 @keyframes o365-spin {
   0% {
     transform: rotate(0deg);

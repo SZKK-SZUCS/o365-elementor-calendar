@@ -13,6 +13,12 @@ class O365CalendarWidget {
     this.email = this.container.dataset.email;
     this.calendarId = this.container.dataset.calendarId;
 
+    // Idő és Dátum korlátok beolvasása
+    this.slotMin = this.container.dataset.slotMin || "00:00:00";
+    this.slotMax = this.container.dataset.slotMax || "24:00:00";
+    this.validStart = this.container.dataset.validStart || null;
+    this.validEnd = this.container.dataset.validEnd || null;
+
     this.eventCache = {};
     this.searchTerm = "";
     this.searchTimeout = null;
@@ -20,14 +26,12 @@ class O365CalendarWidget {
     this.initWrapper();
     this.initCalendar();
 
-    // Figyeljük a képernyő átméretezését a reszponzív gombok miatt
     window.addEventListener(
       "resize",
       this.debounce(() => this.applyResponsiveSettings(), 200),
     );
   }
 
-  // Megállapítja az eszköztípust
   getDeviceType() {
     const width = window.innerWidth;
     if (width <= 767) return "mobile";
@@ -35,7 +39,6 @@ class O365CalendarWidget {
     return "desktop";
   }
 
-  // Kiolvassa az aktuális eszközhöz tartozó beállításokat
   getCurrentConfig() {
     const device = this.getDeviceType();
     const viewsRaw =
@@ -47,7 +50,6 @@ class O365CalendarWidget {
         `default${device.charAt(0).toUpperCase() + device.slice(1)}`
       ];
 
-    // Bolondbiztos: ha üres, kényszerítünk egyet
     let viewsArr = viewsRaw ? viewsRaw.split(",") : ["dayGridMonth"];
     if (!viewsArr.includes(defaultView)) defaultView = viewsArr[0];
 
@@ -132,7 +134,18 @@ class O365CalendarWidget {
       initialView: cfg.default,
       locale: huLocale,
       timeZone: "local",
-      height: "100%", // Flexbox szülő adja a magasságot, ez belső scrollt generál
+
+      height: "100%",
+      expandRows: true, // Egyenletes rácsmagasság
+
+      // KORLÁTOK BEKÖTÉSE
+      slotMinTime: this.slotMin,
+      slotMaxTime: this.slotMax,
+      validRange: {
+        start: this.validStart ? this.validStart : null,
+        end: this.validEnd ? this.validEnd : null,
+      },
+
       headerToolbar: {
         left: "prev,next today",
         center: "title",
@@ -153,6 +166,7 @@ class O365CalendarWidget {
       },
       events: (info, success, failure) =>
         this.fetchEvents(info, success, failure),
+
       eventMouseEnter: (info) => this.showTooltip(info.el, info.event),
       eventMouseLeave: () => this.hideTooltip(),
       eventClick: (info) => {
@@ -162,20 +176,22 @@ class O365CalendarWidget {
     });
 
     this.calendar.render();
+
+    setTimeout(() => {
+      this.calendar.updateSize();
+    }, 150);
   }
 
   applyResponsiveSettings() {
     if (!this.calendar) return;
     const cfg = this.getCurrentConfig();
 
-    // Frissítjük a gombokat
     this.calendar.setOption("headerToolbar", {
       left: "prev,next today",
       center: "title",
       right: cfg.allowed.length > 1 ? cfg.allowed.join(",") : "",
     });
 
-    // Ha az aktuális nézet nincs az engedélyezettek közt (mert pl asztaliról mobilra húzták az ablakot), vagy nincs keresés, alkalmazzuk a defaultot
     if (!this.searchTerm && !cfg.allowed.includes(this.calendar.view.type)) {
       this.calendar.changeView(cfg.default);
     }
@@ -193,6 +209,7 @@ class O365CalendarWidget {
     )}&start=${encodeURIComponent(info.startStr)}&end=${encodeURIComponent(
       info.endStr,
     )}`;
+
     fetch(url)
       .then((res) => res.json())
       .then((data) => {
@@ -218,37 +235,50 @@ class O365CalendarWidget {
   }
 
   showTooltip(el, event) {
-    let tooltip = document.querySelector(".o365-calendar-tooltip");
-    if (!tooltip) {
-      tooltip = document.createElement("div");
-      tooltip.className = "o365-calendar-tooltip";
-      document.body.appendChild(tooltip);
-    }
+    this.hideTooltip();
+
+    const tooltip = document.createElement("div");
+    tooltip.className = "o365-calendar-tooltip";
+    document.body.appendChild(tooltip);
 
     const start = event.start.toLocaleTimeString("hu-HU", {
       hour: "2-digit",
       minute: "2-digit",
     });
     const loc = event.extendedProps.location
-      ? `📍 ${event.extendedProps.location}`
+      ? `<div class="tooltip-loc">📍 ${event.extendedProps.location}</div>`
       : "";
-    tooltip.innerHTML = `<div class="tooltip-title">${event.title}</div><div class="tooltip-time">${start}</div><div class="tooltip-loc">${loc}</div>`;
+
+    tooltip.innerHTML = `
+        <div class="tooltip-title">${event.title}</div>
+        <div class="tooltip-time">🕒 ${start}</div>
+        ${loc}
+    `;
 
     const rect = el.getBoundingClientRect();
-    tooltip.style.left = `${rect.left + window.scrollX}px`;
+    const tooltipWidth = 250;
+
+    let leftPos =
+      rect.left + window.scrollX + rect.width / 2 - tooltipWidth / 2;
+    if (leftPos < 10) leftPos = 10;
+
+    tooltip.style.left = `${leftPos}px`;
     tooltip.style.top = `${
-      rect.top + window.scrollY - tooltip.offsetHeight - 10
+      rect.top + window.scrollY - tooltip.offsetHeight - 15
     }px`;
+
+    // A HIBÁS SOR JAVÍTÁSA: Display block beállítása
     tooltip.style.display = "block";
-    setTimeout(() => (tooltip.style.opacity = "1"), 10);
+
+    requestAnimationFrame(() => {
+      tooltip.style.opacity = "1";
+    });
   }
 
   hideTooltip() {
-    const tooltip = document.querySelector(".o365-calendar-tooltip");
-    if (tooltip) {
-      tooltip.style.opacity = "0";
-      setTimeout(() => (tooltip.style.display = "none"), 200);
-    }
+    document
+      .querySelectorAll(".o365-calendar-tooltip")
+      .forEach((t) => t.remove());
   }
 
   openModal(event) {

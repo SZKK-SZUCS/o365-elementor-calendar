@@ -1,5 +1,6 @@
 jQuery(document).ready(function ($) {
   const modalId = "o365-setup-modal";
+
   if ($(`#${modalId}`).length === 0) {
     $("body").append(`
             <div id="${modalId}" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,15,15,0.95); z-index:999999; align-items:center; justify-content:center; font-family:sans-serif;">
@@ -22,21 +23,12 @@ jQuery(document).ready(function ($) {
                             <input type="text" id="o365-code" style="width:100%; padding:15px; border:1px solid #ddd; border-radius:6px; text-align:center; font-size:26px; letter-spacing:6px;" placeholder="000000">
                             <button id="o365-verify" style="width:100%; padding:14px; background:#46b450; color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:600; margin-top:15px;">Ellenőrzés</button>
                         </div>
-
-                        <div id="o365-step-3" class="o365-step" style="display:none;">
-                            <p style="margin-top:0; color:#555;"><strong>3. Lépés:</strong> Válaszd ki a naptárat:</p>
-                            <input type="text" id="o365-search" placeholder="Keresés..." style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px 6px 0 0; border-bottom:none;">
-                            <div id="o365-list" style="max-height:200px; overflow-y:auto; border:1px solid #ddd; border-radius:0 0 6px 6px;"></div>
-                            <button id="o365-save" style="width:100%; padding:14px; background:#0073aa; color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:600; margin-top:15px; display:none;">Kiválasztott Naptár Mentése</button>
-                        </div>
                     </div>
                 </div>
             </div>
         `);
   }
 
-  let calendars = [];
-  let selected = null;
   const getNonce = () =>
     typeof o365EditorConfig !== "undefined" ? o365EditorConfig.nonce : "";
 
@@ -49,11 +41,21 @@ jQuery(document).ready(function ($) {
   $(document).on("click", "#o365-trigger-wizard", function () {
     const model = elementor.getPanelView().getCurrentPageView().model;
     $("#o365-email").val(model.getSetting("target_email") || "");
+
+    // Alaphelyzetbe állítjuk a modalt, hátha újra nyitják
+    $("#o365-step-1").show();
+    $("#o365-step-2").hide();
+    $("#o365-log").hide();
+    $("#o365-code").val("");
+    $("#o365-send").prop("disabled", false).text("Kód Küldése");
+    $("#o365-verify").prop("disabled", false).text("Ellenőrzés");
+
     $("#o365-setup-modal").css("display", "flex");
   });
 
-  $("#o365-close").on("click", () => $(`#${modalId}`).hide());
+  $("#o365-close").on("click", () => $("#o365-setup-modal").hide());
 
+  // 1. Lépés: Kód küldése
   $("#o365-send").on("click", function () {
     const email = $("#o365-email").val();
     if (!email) return showLog("Email cím kötelező!", "error");
@@ -79,6 +81,7 @@ jQuery(document).ready(function ($) {
       });
   });
 
+  // 2. Lépés: Hitelesítés és biztonságos újratöltés
   $("#o365-verify").on("click", function () {
     const code = $("#o365-code").val();
     const btn = $(this);
@@ -91,10 +94,26 @@ jQuery(document).ready(function ($) {
       beforeSend: (xhr) => xhr.setRequestHeader("X-WP-Nonce", getNonce()),
     })
       .done((res) => {
-        showLog(res.message);
+        showLog("Sikeres hitelesítés! Ablak bezárása...");
+
         setTimeout(() => {
-          window.location.reload();
-        }, 1500);
+          // 1. Bezárjuk a modalt
+          $("#o365-setup-modal").hide();
+
+          // 2. Elementor natív Toast értesítés (ha elérhető), vagy sima alert
+          const successMsg =
+            "O365 Hitelesítés sikeres! A naptárak legördülő listája a következő oldalfrissítés (F5) után fog frissülni a bal oldalsávban.";
+          if (typeof elementor !== "undefined" && elementor.notifications) {
+            elementor.notifications.showToast({ message: successMsg });
+          } else {
+            alert(successMsg);
+          }
+
+          // 3. Csak a belső előnézetet frissítjük (nem veszik el a mentetlen munka!)
+          if (elementor && elementor.reloadPreview) {
+            elementor.reloadPreview();
+          }
+        }, 1200);
       })
       .fail((err) => {
         showLog(err.responseJSON?.message || "Hibás kód.", "error");
@@ -102,6 +121,7 @@ jQuery(document).ready(function ($) {
       });
   });
 
+  // --- Resync Gomb Logika ---
   $(document).on("click", "#o365-resync-btn", function (e) {
     e.preventDefault();
     const btn = $(this);
@@ -116,37 +136,7 @@ jQuery(document).ready(function ($) {
     }
   });
 
-  function renderList(list) {
-    const cont = $("#o365-list").empty();
-    list.forEach(([id, name]) => {
-      const item = $(
-        `<div style="padding:12px; cursor:pointer; border-bottom:1px solid #eee; transition:background 0.2s;">${name}</div>`,
-      );
-      item.on("click", function () {
-        $("#o365-list div").css("background", "#fff");
-        $(this).css("background", "#e7f2fa");
-        selected = { id: id, name: name };
-        $("#o365-save").fadeIn();
-      });
-      cont.append(item);
-    });
-  }
-
-  $("#o365-search").on("input", function () {
-    const val = $(this).val().toLowerCase();
-    renderList(calendars.filter((c) => c[1].toLowerCase().includes(val)));
-  });
-
-  $("#o365-save").on("click", function () {
-    const model = elementor.getPanelView().getCurrentPageView().model;
-    model.setSetting("target_email", $("#o365-email").val());
-    model.setSetting("calendar_id", selected.id);
-    model.setSetting("calendar_name", selected.name);
-    elementor.getPanelView().getCurrentPageView().render();
-    $(`#${modalId}`).hide();
-  });
-
-  // Stílus Reset (Most már a try/catch blokk és a scope biztonságos)
+  // --- Stílus Reset ---
   $(document).on("click", "#o365-reset-styles", function (e) {
     if (!confirm("Biztosan törölni akarsz minden egyedi stílusbeállítást?"))
       return;
@@ -165,7 +155,7 @@ jQuery(document).ready(function ($) {
     elementor.getPanelView().getCurrentPageView().render();
   });
 
-  // Dropdown elrejtése ha csak 1 nézet aktív
+  // --- Dropdown elrejtése ha csak 1 nézet aktív ---
   $(document).on("change", 'input[data-setting^="enable_"]', function () {
     const activeCount = $('input[data-setting^="enable_"]:checked').length;
     const dropdowns = $(
