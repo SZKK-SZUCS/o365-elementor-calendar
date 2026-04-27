@@ -194,29 +194,31 @@ class ElementorWidget extends Widget_Base {
         $email = get_option( 'o365_auth_email', '' );
         
         $cal_id = !empty($settings['calendar_id']) ? (is_array($settings['calendar_id']) ? implode(',', $settings['calendar_id']) : $settings['calendar_id']) : '';
-        $cat_filter = !empty($settings['category_filter']) ? implode(',', $settings['category_filter']) : '';
+        $cat_filter = !empty($settings['category_filter']) ? (is_array($settings['category_filter']) ? implode(',', $settings['category_filter']) : $settings['category_filter']) : '';
+
+        $vd = !empty($settings['views_desktop']) ? implode(',', $settings['views_desktop']) : 'dayGridMonth';
+        $vt = !empty($settings['views_tablet']) ? implode(',', $settings['views_tablet']) : 'timeGridWeek';
+        $vm = !empty($settings['views_mobile']) ? implode(',', $settings['views_mobile']) : 'listMonth';
 
         ?>
         <div class="o365-fullcalendar-container" 
              data-email="<?php echo esc_attr($email); ?>" 
-             data-calendar-id="<?php echo esc_attr($cal_id); ?>"
-             
+             data-calendar-id="<?php echo esc_attr($cal_id); ?>" 
              data-views-desktop="<?php echo esc_attr($vd); ?>"
              data-default-desktop="<?php echo esc_attr($settings['default_desktop'] ?? 'dayGridMonth'); ?>"
              data-views-tablet="<?php echo esc_attr($vt); ?>"
              data-default-tablet="<?php echo esc_attr($settings['default_tablet'] ?? 'timeGridWeek'); ?>"
              data-views-mobile="<?php echo esc_attr($vm); ?>"
              data-default-mobile="<?php echo esc_attr($settings['default_mobile'] ?? 'listMonth'); ?>"
-             
              data-slot-min="<?php echo esc_attr($settings['slot_min_time'] ?? '00:00:00'); ?>"
              data-slot-max="<?php echo esc_attr($settings['slot_max_time'] ?? '24:00:00'); ?>"
              data-valid-start="<?php echo esc_attr($settings['valid_start'] ?? ''); ?>"
              data-valid-end="<?php echo esc_attr($settings['valid_end'] ?? ''); ?>"
-             
              data-privacy="<?php echo esc_attr($settings['privacy_mode'] ?? 'mask'); ?>"
              data-mask-text="<?php echo esc_attr($settings['privacy_mask_text'] ?? 'Foglalt'); ?>"
              data-category-filter="<?php echo esc_attr($cat_filter); ?>"
-             data-display-event-time="<?php echo esc_attr($settings['display_event_time']); ?>">
+             data-use-colors="<?php echo esc_attr($settings['use_o365_colors'] ?? 'yes'); ?>"
+             data-display-event-time="<?php echo esc_attr($settings['display_event_time'] ?? 'yes'); ?>">
         </div>
         <?php
     }
