@@ -431,12 +431,58 @@ $tahoma: "Tahoma", "Geneva", sans-serif;
 // =========================================
 .o365-agenda-container {
   font-family: "Tahoma", sans-serif;
+  display: flex;
+  flex-direction: column;
+  .o365-agenda-list-wrapper {
+    overflow-y: auto; // Belső görgetés bekapcsolása
+    flex-grow: 1;
+    // Elementorból jövő max-height lesz itt érvényes
+
+    /* Szép vékony görgetősáv (Chrome/Safari) */
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    &::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0.1);
+      border-radius: 10px;
+    }
+    &:hover::-webkit-scrollbar-thumb {
+      background: rgba($brand-cyan, 0.3);
+    }
+  }
 
   .o365-agenda-list {
     display: flex;
     flex-direction: column;
     border-radius: inherit;
     overflow: hidden;
+  }
+  .o365-load-more-wrap {
+    text-align: center;
+    padding: 20px;
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+
+    .o365-load-more-btn {
+      background: $brand-cyan;
+      color: #fff;
+      border: none;
+      padding: 10px 25px;
+      border-radius: 30px;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+
+      &:hover {
+        background: darken($brand-cyan, 10%);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 10px rgba($brand-cyan, 0.3);
+      }
+    }
   }
   .agenda-group-header {
     background: rgba($brand-cyan, 0.08);
@@ -537,6 +583,32 @@ $tahoma: "Tahoma", "Geneva", sans-serif;
       }
     }
   }
+  .o365-agenda-footer {
+    padding: 15px;
+    text-align: center;
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    background: #fff; // Hogy fixen látsszon a gomb
+
+    // A GOMB STÍLUSA
+    .o365-load-more-btn {
+      background: $brand-cyan;
+      color: #fff;
+      border: none;
+      padding: 10px 25px;
+      border-radius: 30px;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+
+      &:hover {
+        background: darken($brand-cyan, 10%);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 10px rgba($brand-cyan, 0.3);
+      }
+    }
+  }
 }
 
 // Agenda Sablonok
@@ -551,12 +623,20 @@ $tahoma: "Tahoma", "Geneva", sans-serif;
     border-bottom-color: rgba(255, 255, 255, 0.1);
   }
 
+  .o365-load-more-wrap {
+    border-top-color: rgba(255, 255, 255, 0.1);
+  }
+
   // Sötét fejléc stílus
   .agenda-group-header {
     background: rgba(255, 255, 255, 0.05);
     color: $brand-cyan;
     border-bottom-color: rgba(255, 255, 255, 0.1);
     border-top-color: transparent;
+  }
+  .o365-agenda-footer {
+    background: transparent;
+    border-top-color: rgba(255, 255, 255, 0.1);
   }
 }
 

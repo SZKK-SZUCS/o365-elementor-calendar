@@ -465,7 +465,15 @@ class O365AgendaWidget {
       export: this.container.dataset.showExport === "yes",
       modal: this.container.dataset.enableModal === "yes",
       grouping: this.container.dataset.grouping || "none",
+      loadMore: this.container.dataset.showLoadMore === "yes",
     };
+
+    this.loadMoreText =
+      this.container.dataset.loadMoreText || "További események betöltése";
+
+    // Állapotváltozók a belső lapozáshoz
+    this.allEvents = [];
+    this.currentLimit = this.limit;
 
     this.initModal();
     this.loadAgenda();
@@ -513,8 +521,9 @@ class O365AgendaWidget {
 
   loadAgenda() {
     const start = new Date().toISOString();
+    // 60 nap helyett 365 napot kérünk le, hogy bőven legyen mit betölteni a gombbal
     const end = new Date(
-      new Date().getTime() + 60 * 24 * 60 * 60 * 1000,
+      new Date().getTime() + 365 * 24 * 60 * 60 * 1000,
     ).toISOString();
     const url = `/wp-json/o365cal/v1/events?calendar_id=${encodeURIComponent(
       this.calendarId,
@@ -524,7 +533,10 @@ class O365AgendaWidget {
 
     fetch(url)
       .then((res) => res.json())
-      .then((events) => this.renderAgenda(events.slice(0, this.limit)))
+      .then((events) => {
+        this.allEvents = events;
+        this.renderAgenda();
+      })
       .catch(
         () =>
           (this.container.innerHTML =
@@ -532,9 +544,16 @@ class O365AgendaWidget {
       );
   }
 
-  renderAgenda(events) {
-    if (!events || !events.length) {
-      this.container.innerHTML =
+  renderAgenda() {
+    const listWrapper = this.container.querySelector(
+      ".o365-agenda-list-wrapper",
+    );
+    const footer = this.container.querySelector(".o365-agenda-footer");
+
+    const visibleEvents = this.allEvents.slice(0, this.currentLimit);
+
+    if (!visibleEvents || !visibleEvents.length) {
+      listWrapper.innerHTML =
         '<div class="o365-empty">Nincsenek közelgő események.</div>';
       return;
     }
@@ -542,36 +561,25 @@ class O365AgendaWidget {
     let html = '<div class="o365-agenda-list">';
     let currentGroup = "";
 
-    events.forEach((event, idx) => {
+    visibleEvents.forEach((event, idx) => {
       const startDate = new Date(event.start);
-      const dateStr = startDate.toLocaleDateString("hu-HU", {
-        month: "short",
-        day: "numeric",
-      });
-      const timeStr = startDate.toLocaleTimeString("hu-HU", {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-
-      // Csoportosítás (Fejlécek beszúrása)
+      // ... csoportosítási logika változatlan ...
       if (this.config.grouping !== "none") {
-        let groupKey = "";
-        let groupLabel = "";
-
-        if (this.config.grouping === "month") {
-          groupKey = `${startDate.getFullYear()}-${startDate.getMonth()}`;
-          groupLabel = startDate.toLocaleDateString("hu-HU", {
-            year: "numeric",
-            month: "long",
-          });
-        } else if (this.config.grouping === "day") {
-          groupKey = startDate.toLocaleDateString("hu-HU");
-          groupLabel = startDate.toLocaleDateString("hu-HU", {
-            month: "long",
-            day: "numeric",
-            weekday: "long",
-          });
-        }
+        let groupKey =
+          this.config.grouping === "month"
+            ? `${startDate.getFullYear()}-${startDate.getMonth()}`
+            : startDate.toLocaleDateString("hu-HU");
+        let groupLabel =
+          this.config.grouping === "month"
+            ? startDate.toLocaleDateString("hu-HU", {
+                year: "numeric",
+                month: "long",
+              })
+            : startDate.toLocaleDateString("hu-HU", {
+                month: "long",
+                day: "numeric",
+                weekday: "long",
+              });
 
         if (groupKey !== currentGroup) {
           html += `<div class="agenda-group-header">${groupLabel}</div>`;
@@ -579,7 +587,6 @@ class O365AgendaWidget {
         }
       }
 
-      // Esemény kártya
       html += `
         <div class="o365-agenda-item ${
           this.config.modal ? "is-clickable" : ""
@@ -587,12 +594,18 @@ class O365AgendaWidget {
           <div class="agenda-meta">
             ${
               this.config.date
-                ? `<span class="agenda-date">${dateStr}</span>`
+                ? `<span class="agenda-date">${startDate.toLocaleDateString(
+                    "hu-HU",
+                    { month: "short", day: "numeric" },
+                  )}</span>`
                 : ""
             }
             ${
               this.config.time
-                ? `<span class="agenda-time">${timeStr}</span>`
+                ? `<span class="agenda-time">${startDate.toLocaleTimeString(
+                    "hu-HU",
+                    { hour: "2-digit", minute: "2-digit" },
+                  )}</span>`
                 : ""
             }
           </div>
@@ -600,10 +613,7 @@ class O365AgendaWidget {
             <div class="agenda-title">${event.title}</div>
             ${
               this.config.loc && event.extendedProps.location
-                ? `<div class="agenda-loc">
-              <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" style="vertical-align: text-bottom; margin-right: 4px;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-              ${event.extendedProps.location}
-            </div>`
+                ? `<div class="agenda-loc">📍 ${event.extendedProps.location}</div>`
                 : ""
             }
             ${
@@ -616,31 +626,42 @@ class O365AgendaWidget {
             this.config.export
               ? `
             <div class="agenda-actions">
-              <button class="o365-agenda-export" title="Letöltés" data-idx="${idx}">
-                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-              </button>
-            </div>
-          `
+              <button class="o365-agenda-export" title="Letöltés" data-idx="${idx}"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></button>
+            </div>`
               : ""
           }
-        </div>
-      `;
+        </div>`;
     });
     html += "</div>";
-    this.container.innerHTML = html;
 
-    // Eseménykezelők bekötése
-    this.container.querySelectorAll(".o365-agenda-item").forEach((item) => {
+    listWrapper.innerHTML = html;
+
+    // A gomb a görgethető részen KÍVÜLRE kerül a footerbe
+    if (this.config.loadMore && this.allEvents.length > this.currentLimit) {
+      footer.innerHTML = `<button class="o365-load-more-btn">${this.loadMoreText}</button>`;
+      footer.querySelector(".o365-load-more-btn").onclick = () => {
+        this.currentLimit += this.limit;
+        this.renderAgenda();
+        // Automatikusan az aljára görgetünk, hogy látszódjanak az újak
+        setTimeout(() => {
+          listWrapper.scrollTop = listWrapper.scrollHeight;
+        }, 50);
+      };
+    } else {
+      footer.innerHTML = "";
+    }
+
+    // Eseménykezelők (Modal és Export) bekötése a listWrapperen belül...
+    listWrapper.querySelectorAll(".o365-agenda-item").forEach((item) => {
       item.onclick = (e) => {
         if (e.target.closest(".o365-agenda-export")) return;
-        if (this.config.modal) this.openModal(events[item.dataset.idx]);
+        if (this.config.modal) this.openModal(visibleEvents[item.dataset.idx]);
       };
     });
-
-    this.container.querySelectorAll(".o365-agenda-export").forEach((btn) => {
+    listWrapper.querySelectorAll(".o365-agenda-export").forEach((btn) => {
       btn.onclick = () => {
         const exporter = new O365CalendarWidget(jQuery(this.container));
-        exporter.downloadICal(events[btn.dataset.idx]);
+        exporter.downloadICal(visibleEvents[btn.dataset.idx]);
       };
     });
   }

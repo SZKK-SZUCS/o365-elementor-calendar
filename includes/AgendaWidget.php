@@ -51,6 +51,19 @@ class AgendaWidget extends Widget_Base {
         $this->add_control('show_desc', ['label' => 'Leírás mutatása', 'type' => Controls_Manager::SWITCHER, 'default' => 'no']);
         $this->add_control('show_export', ['label' => 'iCal Letöltés gomb', 'type' => Controls_Manager::SWITCHER, 'default' => 'yes']);
         $this->add_control('enable_modal', ['label' => 'Részletek Modal ablak', 'type' => Controls_Manager::SWITCHER, 'default' => 'yes', 'description' => 'Kattinthatóvá teszi az eseményt a részletekért.']);
+        $this->add_control('show_load_more', [
+            'label' => 'Több betöltése gomb',
+            'type' => Controls_Manager::SWITCHER,
+            'default' => 'yes',
+            'separator' => 'before'
+        ]);
+
+        $this->add_control('load_more_text', [
+            'label' => 'Gomb felirata',
+            'type' => Controls_Manager::TEXT,
+            'default' => 'További események betöltése',
+            'condition' => ['show_load_more' => 'yes'],
+        ]);
         $this->end_controls_section();
 
         // --- STÍLUS FÜL ---
@@ -59,6 +72,18 @@ class AgendaWidget extends Widget_Base {
         $this->add_control('item_padding', ['label' => 'Elemek belső margója', 'type' => Controls_Manager::DIMENSIONS, 'selectors' => ['{{WRAPPER}} .o365-agenda-item' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};']]);
         $this->add_control('item_border_color', ['label' => 'Elválasztó vonal színe', 'type' => Controls_Manager::COLOR, 'selectors' => ['{{WRAPPER}} .o365-agenda-item' => 'border-bottom-color: {{VALUE}};']]);
         $this->add_control('item_hover_bg', ['label' => 'Hover háttérszín', 'type' => Controls_Manager::COLOR, 'selectors' => ['{{WRAPPER}} .o365-agenda-item:hover' => 'background-color: {{VALUE}};']]);
+        $this->add_responsive_control('list_max_height', [
+            'label' => 'Lista maximális magassága',
+            'type' => Controls_Manager::SLIDER,
+            'size_units' => [ 'px', 'vh' ],
+            'range' => [
+                'px' => [ 'min' => 200, 'max' => 1000 ],
+            ],
+            'selectors' => [
+                '{{WRAPPER}} .o365-agenda-list-wrapper' => 'max-height: {{SIZE}}{{UNIT}};',
+            ],
+            'description' => 'Ha a lista hosszabb ennél, belső görgetősáv jelenik meg.',
+        ]);
         $this->end_controls_section();
 
         $this->start_controls_section('style_title', ['label' => 'Esemény Címe', 'tab' => Controls_Manager::TAB_STYLE]);
@@ -93,8 +118,15 @@ class AgendaWidget extends Widget_Base {
              data-show-desc="<?php echo esc_attr($settings['show_desc']); ?>"
              data-show-export="<?php echo esc_attr($settings['show_export']); ?>"
              data-enable-modal="<?php echo esc_attr($settings['enable_modal']); ?>"
-             data-grouping="<?php echo esc_attr($settings['grouping_mode'] ?? 'none'); ?>">
-            <div class="o365-agenda-loading"><div class="spinner"></div></div>
+             data-grouping="<?php echo esc_attr($settings['grouping_mode'] ?? 'none'); ?>"
+             data-show-load-more="<?php echo esc_attr($settings['show_load_more'] ?? 'yes'); ?>"
+             data-load-more-text="<?php echo esc_attr($settings['load_more_text'] ?? 'További események betöltése'); ?>">
+            
+            <div class="o365-agenda-list-wrapper">
+                <div class="o365-agenda-loading"><div class="spinner"></div></div>
+            </div>
+            
+            <div class="o365-agenda-footer"></div>
         </div>
         <?php
     }
