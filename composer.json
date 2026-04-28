@@ -1,10 +1,10 @@
 {
   "name": "szkk-szucs/o365-elementor-calendar",
-  "description": "Enterprise Microsoft 365 Calendar integration for Elementor",
+  "description": "O365 Naptár integráció Elementor Widget-ekkel (Naptár, Agenda, Kiemelt esemény)",
   "type": "wordpress-plugin",
   "authors": [
     {
-      "name": "SZKK Szucs"
+      "name": "MFÜI - Szurofka Márton"
     }
   ],
   "require": {

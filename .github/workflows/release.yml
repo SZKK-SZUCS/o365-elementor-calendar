@@ -1,0 +1,68 @@
+name: Build and Release O365 Calendar
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Kód letöltése (Checkout)
+        uses: actions/checkout@v4
+
+      - name: Node.js környezet beállítása
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: PHP környezet beállítása
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.0"
+          extensions: mbstring, xml, ctype, iconv
+          tools: composer
+
+      - name: PHP függőségek telepítése (Production)
+        run: |
+          composer install --no-dev --optimize-autoloader
+
+      - name: JavaScript Build folyamat
+        run: |
+          npm install
+          npm run build
+
+      - name: Tisztítás a csomagolás előtt
+        # Töröljük a forrásfájlokat és konfigokat, amik nem kellenek a futáshoz
+        run: |
+          rm -rf node_modules
+          rm -rf src
+          rm -rf .git
+          rm -rf .github
+          rm -rf .gitignore
+          rm -rf package.json
+          rm -rf package-lock.json
+          rm -rf composer.json
+          rm -rf composer.lock
+          rm -rf webpack.config.js
+          # Ha vannak egyéb fejlesztői maradványok, itt törölheted
+
+      - name: Plugin mappa átnevezése és tömörítése
+        # A ZIP-ben a mappának meg kell egyeznie a plugin slug-gal
+        run: |
+          cd ..
+          zip -r o365-elementor-calendar.zip o365-elementor-calendar/
+          mv o365-elementor-calendar.zip o365-elementor-calendar/
+
+      - name: Feltöltés a GitHub Release-hez
+        uses: softprops/action-gh-release@v2
+        with:
+          files: o365-elementor-calendar.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

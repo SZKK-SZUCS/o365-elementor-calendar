@@ -1,9 +1,9 @@
 <?php
 /**
- * Plugin Name: O365 Elementor Calendar
- * Description: Enterprise Microsoft 365 Calendar integration for Elementor. Displays FullCalendar, Agenda and Single Event widgets.
+ * Plugin Name: O365 Elementor Naptár
+ * Description: Egyedi naptár widget Elementorhoz, amely az Office 365 Graph API-t használja. Gyors, megbízható és könnyen testreszabható megoldás a WordPress oldalak számára.
  * Version: 1.0.0
- * Author: SZKK Szucs
+ * Author: MFÜI - Szurofka Márton
  * Text Domain: o365-elementor-calendar
  * Domain Path: /languages
  */
