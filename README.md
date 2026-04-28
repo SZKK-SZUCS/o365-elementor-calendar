@@ -89,7 +89,7 @@ Igen. Ha az O365 naptáradban kategóriákat használsz az eseményekhez, az Ele
 
 Minden fontos változtatás ebben a szekcióban kerül dokumentálásra. A formátum a Keep a Changelog szabványt követi.
 
-### [1.0.0] - 2026-04-28
+### [0.9.9] - 2026-04-28
 
 #### Hozzáadva
 

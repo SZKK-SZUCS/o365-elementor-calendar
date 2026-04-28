@@ -2,7 +2,7 @@
 /**
  * Plugin Name: O365 Elementor Naptár
  * Description: Egyedi naptár widget Elementorhoz, amely az Office 365 Graph API-t használja. Gyors, megbízható és könnyen testreszabható megoldás a WordPress oldalak számára.
- * Version: 1.0.0
+ * Version: 0.9.9
  * Author: MFÜI - Szurofka Márton
  * Text Domain: o365-elementor-calendar
  * Domain Path: /languages
