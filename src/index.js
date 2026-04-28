@@ -677,7 +677,9 @@ class O365SingleEventWidget {
       loc: this.container.dataset.showLoc === "yes",
       desc: this.container.dataset.showDesc === "yes",
       export: this.container.dataset.showExport === "yes",
+      countdown: this.container.dataset.showCountdown === "yes",
     };
+    this.countdownInterval = null; // A setInterval azonosítója
 
     this.loadSingleEvent();
   }
@@ -789,7 +791,6 @@ class O365SingleEventWidget {
 
     let descHtml = "";
     if (this.config.desc && event.extendedProps?.body) {
-      // Levágjuk a HTML tageket egy biztonságos previewhoz
       const tmp = document.createElement("DIV");
       tmp.innerHTML = event.extendedProps.body;
       const plainText = tmp.textContent || tmp.innerText || "";
@@ -797,8 +798,17 @@ class O365SingleEventWidget {
         plainText.length > 100
           ? plainText.substring(0, 100) + "..."
           : plainText;
-
       descHtml = `<div class="single-event-desc" style="font-size:13px; color:#777; margin-top:8px;">${preview}</div>`;
+    }
+
+    let countdownHtml = "";
+    if (this.config.countdown) {
+      countdownHtml = `<div class="single-event-countdown" style="display:none;">
+            <span class="cd-val" id="cd-days">0</span><span class="cd-label">nap</span>
+            <span class="cd-val" id="cd-hours">00</span><span class="cd-label">ó</span>
+            <span class="cd-val" id="cd-mins">00</span><span class="cd-label">p</span>
+            <span class="cd-val" id="cd-secs">00</span><span class="cd-label">mp</span>
+        </div>`;
     }
 
     this.container.innerHTML = `
@@ -814,6 +824,7 @@ class O365SingleEventWidget {
           <h3 class="single-event-title">${event.title}</h3>
           ${locHtml}
           ${descHtml}
+          ${countdownHtml}
         </div>
         ${exportHtml}
       </div>
@@ -827,6 +838,52 @@ class O365SingleEventWidget {
           exporter.downloadICal(event);
         });
     }
+
+    if (this.config.countdown) {
+      this.startCountdown(start);
+    }
+  }
+
+  startCountdown(targetDate) {
+    if (this.countdownInterval) clearInterval(this.countdownInterval);
+
+    const cdWrap = this.container.querySelector(".single-event-countdown");
+    if (!cdWrap) return;
+
+    const dEl = cdWrap.querySelector("#cd-days");
+    const hEl = cdWrap.querySelector("#cd-hours");
+    const mEl = cdWrap.querySelector("#cd-mins");
+    const sEl = cdWrap.querySelector("#cd-secs");
+
+    const update = () => {
+      const now = new Date().getTime();
+      const distance = targetDate.getTime() - now;
+
+      if (distance < 0) {
+        clearInterval(this.countdownInterval);
+        cdWrap.innerHTML =
+          '<span class="cd-started">Az esemény elkezdődött!</span>';
+        cdWrap.style.display = "flex";
+        return;
+      }
+
+      const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+      const hours = Math.floor(
+        (distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
+      );
+      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+      dEl.textContent = days;
+      hEl.textContent = hours < 10 ? "0" + hours : hours;
+      mEl.textContent = minutes < 10 ? "0" + minutes : minutes;
+      sEl.textContent = seconds < 10 ? "0" + seconds : seconds;
+
+      cdWrap.style.display = "flex";
+    };
+
+    update(); // Első azonnali futtatás
+    this.countdownInterval = setInterval(update, 1000);
   }
 }
 

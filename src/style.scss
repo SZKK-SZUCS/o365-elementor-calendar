@@ -616,6 +616,38 @@ $tahoma: "Tahoma", "Geneva", sans-serif;
         align-items: center;
         gap: 6px;
       }
+      .single-event-countdown {
+        margin-top: 15px;
+        display: flex;
+        align-items: baseline;
+        gap: 4px;
+        background: rgba($brand-cyan, 0.1);
+        padding: 8px 12px;
+        border-radius: 6px;
+        display: inline-flex;
+        border: 1px solid rgba($brand-cyan, 0.2);
+
+        .cd-val {
+          font-weight: bold;
+          color: $brand-cyan;
+          font-size: 15px;
+          font-variant-numeric: tabular-nums; // Hogy ne ugráljanak a számok
+        }
+        .cd-label {
+          font-size: 11px;
+          color: #666;
+          text-transform: uppercase;
+          margin-right: 6px;
+          &:last-child {
+            margin-right: 0;
+          }
+        }
+        .cd-started {
+          color: $brand-cyan;
+          font-weight: bold;
+          font-size: 14px;
+        }
+      }
     }
 
     .o365-single-export {
@@ -650,6 +682,13 @@ $tahoma: "Tahoma", "Geneva", sans-serif;
 
 // Single Event Sablonok
 .o365-single-template-dark {
+  .single-event-countdown {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+    .cd-label {
+      color: #aaa;
+    }
+  }
   .o365-single-card {
     background: #242943;
     .single-event-title {

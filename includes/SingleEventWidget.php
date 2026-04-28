@@ -90,6 +90,7 @@ class SingleEventWidget extends Widget_Base {
         $this->add_control('show_loc', ['label' => 'Helyszín', 'type' => Controls_Manager::SWITCHER, 'default' => 'yes']);
         $this->add_control('show_desc', ['label' => 'Leírás (Preview)', 'type' => Controls_Manager::SWITCHER, 'default' => 'no']);
         $this->add_control('show_export', ['label' => 'Hozzáadás naptárhoz gomb', 'type' => Controls_Manager::SWITCHER, 'default' => 'yes']);
+        $this->add_control('show_countdown', ['label' => 'Visszaszámláló mutatása','type' => Controls_Manager::SWITCHER, 'default' => 'yes', 'description' => 'Egy másodpercenként frissülő visszaszámlálót tesz az esemény mellé.',]);
         $this->end_controls_section();
 
         // --- LEJÁRAT UTÁNI VISELKEDÉS ---
@@ -146,7 +147,8 @@ class SingleEventWidget extends Widget_Base {
              data-mask-text="<?php echo esc_attr($settings['mask_text']); ?>"
              data-show-loc="<?php echo esc_attr($settings['show_loc']); ?>"
              data-show-desc="<?php echo esc_attr($settings['show_desc']); ?>"
-             data-show-export="<?php echo esc_attr($settings['show_export']); ?>">
+             data-show-export="<?php echo esc_attr($settings['show_export']); ?>"
+             data-show-countdown="<?php echo esc_attr($settings['show_countdown'] ?? 'yes'); ?>">
             <div class="o365-single-loading"><div class="spinner"></div></div>
         </div>
         <?php
