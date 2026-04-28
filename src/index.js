@@ -15,18 +15,21 @@ function getTrans(locale, key) {
       join: "Csatlakozás",
       link: "Megnyitás",
       ongoing: "Folyamatban",
+      details: "Részletek",
     },
     en: {
       allday: "All day",
       join: "Join",
       link: "Open link",
       ongoing: "In progress",
+      details: "Details",
     },
     de: {
       allday: "Ganztägig",
       join: "Teilnehmen",
       link: "Öffnen",
       ongoing: "Läuft",
+      details: "Details",
     },
   };
   return dict[lang] && dict[lang][key] ? dict[lang][key] : dict["en"][key];
@@ -55,7 +58,7 @@ function getLinkIcon(url) {
   return `<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>`;
 }
 
-// KÖZÖS HELPER: Dátum és Idő formázó (Többnapos és Egésznapos kezelés)
+// KÖZÖS HELPER: Dátum és Idő formázó
 function formatEventDateTime(event, locale) {
   const startDate = new Date(event.start);
   let dateStr = startDate.toLocaleDateString(locale, {
@@ -67,7 +70,6 @@ function formatEventDateTime(event, locale) {
   if (event.allDay) {
     timeStr = getTrans(locale, "allday");
     if (event.end) {
-      // Graph API az egésznapos end végét a következő nap éjfelére teszi. Visszavonunk 1 másodpercet.
       const endDate = new Date(new Date(event.end).getTime() - 1000);
       if (startDate.toDateString() !== endDate.toDateString()) {
         dateStr += ` - ${endDate.toLocaleDateString(locale, {
@@ -450,7 +452,6 @@ class O365CalendarWidget {
       ? "<em>Ez az esemény privátként lett megjelölve.</em>"
       : event.extendedProps?.body || "<em>Nincs megadva leírás.</em>";
 
-    // Gombok generálása
     let buttonsHtml = "";
     const meetingLink = getMeetingLink(event.extendedProps?.body);
     if (meetingLink && !isPrivate) {
@@ -467,14 +468,16 @@ class O365CalendarWidget {
 
     if (!isPrivate) {
       buttonsHtml += `
-        <button class="o365-export-ical-btn">
+        <button class="o365-export-ical-btn o365-agenda-modal-export">
             <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" style="vertical-align: middle; margin-right: 5px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
             Mentés naptárba
         </button>`;
     }
 
     this.modalActions.innerHTML = buttonsHtml;
-    const exportBtn = this.modalActions.querySelector(".o365-export-ical-btn");
+    const exportBtn = this.modalActions.querySelector(
+      ".o365-agenda-modal-export",
+    );
     if (exportBtn)
       exportBtn.addEventListener("click", () => exportToICal(event));
 
@@ -656,6 +659,7 @@ class O365AgendaWidget {
           `;
       }
 
+      // EMOJI CSERÉLVE SVG-RE
       html += `
         <div class="o365-agenda-item ${
           this.config.modal ? "is-clickable" : ""
@@ -676,7 +680,7 @@ class O365AgendaWidget {
             <div class="agenda-title">${event.title}</div>
             ${
               this.config.loc && event.extendedProps.location
-                ? `<div class="agenda-loc">📍 ${event.extendedProps.location}</div>`
+                ? `<div class="agenda-loc"><svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" style="vertical-align: text-bottom; margin-right: 4px;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> ${event.extendedProps.location}</div>`
                 : ""
             }
             ${
@@ -795,7 +799,7 @@ class O365AgendaWidget {
 }
 
 // ==========================================
-// 3. SINGLE EVENT WIDGET
+// 3. SINGLE EVENT WIDGET (Accordion Panel)
 // ==========================================
 class O365SingleEventWidget {
   constructor($scope) {
@@ -897,26 +901,18 @@ class O365SingleEventWidget {
     const monthStr = startDate
       .toLocaleDateString(this.locale, { month: "short" })
       .toUpperCase();
+    const isPrivate = event.extendedProps?.isPrivate;
 
     let exportHtml = "";
-    const meetingLink = getMeetingLink(event.extendedProps?.body);
-
-    if (meetingLink) {
-      exportHtml += `
-        <a href="${meetingLink}" target="_blank" class="o365-single-meeting-btn" title="Csatlakozás">
-           ${getLinkIcon(meetingLink)}
-        </a>`;
-    }
-
-    if (this.config.export) {
-      exportHtml += `
+    if (this.config.export && !isPrivate) {
+      exportHtml = `
         <button class="o365-single-export" title="Naptárhoz adás">
            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
         </button>`;
     }
 
     let locHtml =
-      this.config.loc && event.extendedProps?.location
+      this.config.loc && event.extendedProps?.location && !isPrivate
         ? `
         <div class="single-event-loc">
             <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
@@ -925,15 +921,25 @@ class O365SingleEventWidget {
         : "";
 
     let descHtml = "";
-    if (this.config.desc && event.extendedProps?.body) {
-      const tmp = document.createElement("DIV");
-      tmp.innerHTML = event.extendedProps.body;
-      const plainText = tmp.textContent || tmp.innerText || "";
-      const preview =
-        plainText.length > 100
-          ? plainText.substring(0, 100) + "..."
-          : plainText;
-      descHtml = `<div class="single-event-desc" style="font-size:13px; color:#777; margin-top:8px;">${preview}</div>`;
+    if (this.config.desc) {
+      let bodyContent = isPrivate
+        ? "<em>Ez az esemény privátként lett megjelölve.</em>"
+        : event.extendedProps?.body || "<em>Nincs leírás.</em>";
+      descHtml = `<div class="single-event-desc">${bodyContent}</div>`;
+    }
+
+    let meetingHtml = "";
+    const meetingLink = getMeetingLink(event.extendedProps?.body);
+    if (meetingLink && !isPrivate) {
+      const btnText =
+        meetingLink.includes("teams") ||
+        meetingLink.includes("zoom") ||
+        meetingLink.includes("meet")
+          ? getTrans(this.locale, "join")
+          : getTrans(this.locale, "link");
+      meetingHtml = `<a href="${meetingLink}" target="_blank" class="o365-meeting-btn" style="margin-top: 15px;">${getLinkIcon(
+        meetingLink,
+      )} ${btnText}</a>`;
     }
 
     let countdownHtml = this.config.countdown
@@ -946,29 +952,64 @@ class O365SingleEventWidget {
         </div>`
       : "";
 
+    // Lenyíló panel tartalma
+    let panelContent = locHtml + descHtml + meetingHtml;
+    let hasPanelContent =
+      (this.config.loc && event.extendedProps?.location && !isPrivate) ||
+      this.config.desc ||
+      (meetingLink && !isPrivate);
+
+    let toggleBtnHtml = hasPanelContent
+      ? `
+        <button class="o365-single-toggle-btn">
+           ${getTrans(this.locale, "details")}
+           <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </button>`
+      : "";
+
     this.container.innerHTML = `
       <div class="o365-single-card">
-        <div class="single-event-date-badge">
-            <span class="day">${startDate.getDate()}</span>
-            <span class="month">${monthStr}</span>
+        <div class="single-event-main">
+            <div class="single-event-date-badge">
+                <span class="day">${startDate.getDate()}</span>
+                <span class="month">${monthStr}</span>
+            </div>
+            <div class="single-event-details">
+              <div class="single-event-meta">${dateStr} | ${timeStr}</div>
+              <h3 class="single-event-title">${event.title}</h3>
+              ${countdownHtml}
+            </div>
+            <div class="single-event-actions">
+              ${toggleBtnHtml}
+              ${exportHtml}
+            </div>
         </div>
-        <div class="single-event-details">
-          <div class="single-event-meta">${dateStr} | ${timeStr}</div>
-          <h3 class="single-event-title">${event.title}</h3>
-          ${locHtml}
-          ${descHtml}
-          ${countdownHtml}
-        </div>
-        <div style="display:flex;">
-          ${exportHtml}
-        </div>
+        ${
+          hasPanelContent
+            ? `
+        <div class="single-event-panel" style="display:none;">
+           <div class="single-event-panel-inner">
+              ${panelContent}
+           </div>
+        </div>`
+            : ""
+        }
       </div>
     `;
 
-    if (this.config.export) {
+    if (this.config.export && !isPrivate) {
       this.container
         .querySelector(".o365-single-export")
         .addEventListener("click", () => exportToICal(event));
+    }
+
+    if (hasPanelContent) {
+      const toggleBtn = this.container.querySelector(".o365-single-toggle-btn");
+      const panel = this.container.querySelector(".single-event-panel");
+      toggleBtn.addEventListener("click", () => {
+        jQuery(panel).slideToggle(300);
+        toggleBtn.classList.toggle("is-open");
+      });
     }
 
     if (this.config.countdown) this.startCountdown(startDate, event);
@@ -994,7 +1035,6 @@ class O365SingleEventWidget {
           )}</span>`;
         } else {
           clearInterval(this.countdownInterval);
-          // Ha teljesen véget ért, frissítsük a listát, hogy hozza a következőt
           setTimeout(() => this.loadSingleEvent(), 2000);
           return;
         }

@@ -660,16 +660,58 @@ $tahoma: "Tahoma", "Geneva", sans-serif;
 
   .o365-single-card {
     display: flex;
-    align-items: center;
-    padding: 25px;
+    flex-direction: column;
     background: #fff;
     border-radius: 15px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-    gap: 25px;
     position: relative;
     transition: transform 0.3s ease;
+    overflow: hidden;
+
     &:hover {
       transform: translateY(-5px);
+    }
+
+    .single-event-main {
+      display: flex;
+      align-items: center;
+      padding: 25px;
+      gap: 25px;
+    }
+
+    .single-event-panel {
+      background: #fdfdfd;
+      border-top: 1px solid #eee;
+
+      .single-event-panel-inner {
+        padding: 25px;
+        padding-top: 20px;
+      }
+
+      .single-event-loc {
+        font-size: 14px;
+        color: #888;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 15px;
+        svg {
+          flex-shrink: 0;
+        }
+      }
+
+      .single-event-desc {
+        font-size: 14px;
+        color: #555;
+        line-height: 1.6;
+        p {
+          margin-top: 0;
+          margin-bottom: 1em;
+        }
+        a {
+          color: $brand-cyan;
+        }
+      }
     }
 
     .single-event-date-badge {
@@ -711,14 +753,8 @@ $tahoma: "Tahoma", "Geneva", sans-serif;
         font-size: 20px;
         font-weight: bold;
       }
-      .single-event-loc {
-        margin-top: 8px;
-        font-size: 14px;
-        color: #888;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-      }
+
+      // VISSZASZÁMLÁLÓ VISSZARAKVA
       .single-event-countdown {
         margin-top: 15px;
         display: flex;
@@ -734,7 +770,7 @@ $tahoma: "Tahoma", "Geneva", sans-serif;
           font-weight: bold;
           color: $brand-cyan;
           font-size: 15px;
-          font-variant-numeric: tabular-nums; // Hogy ne ugráljanak a számok
+          font-variant-numeric: tabular-nums;
         }
         .cd-label {
           font-size: 11px;
@@ -753,22 +789,62 @@ $tahoma: "Tahoma", "Geneva", sans-serif;
       }
     }
 
-    .o365-single-export {
-      background: none;
-      border: 1px solid #eee;
-      width: 45px;
-      height: 45px;
-      border-radius: 50%;
+    .single-event-actions {
       display: flex;
       align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      color: #242943;
-      transition: all 0.2s;
-      &:hover {
-        background: #50adc9;
-        color: #fff;
-        border-color: #50adc9;
+      gap: 10px;
+
+      .o365-single-toggle-btn {
+        background: transparent;
+        border: 1px solid #eee;
+        color: #242943;
+        padding: 10px 16px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: bold;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s;
+
+        svg {
+          transition: transform 0.3s ease;
+        }
+
+        &:hover {
+          border-color: #50adc9;
+          color: #50adc9;
+        }
+
+        &.is-open {
+          background: rgba(80, 173, 201, 0.05);
+          border-color: #50adc9;
+          color: #50adc9;
+          svg {
+            transform: rotate(180deg);
+          }
+        }
+      }
+
+      .o365-single-export {
+        background: none;
+        border: 1px solid #eee;
+        width: 42px;
+        height: 42px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: #242943;
+        transition: all 0.2s;
+        flex-shrink: 0;
+        &:hover {
+          background: #50adc9;
+          color: #fff;
+          border-color: #50adc9;
+        }
       }
     }
   }
@@ -780,6 +856,41 @@ $tahoma: "Tahoma", "Geneva", sans-serif;
     border-radius: 12px;
     color: #aaa;
     font-style: italic;
+  }
+}
+
+// SÖTÉT SABLON KIEGÉSZÍTÉSE
+.o365-single-template-dark {
+  .o365-single-card {
+    background: #242943;
+    .single-event-title {
+      color: #fff;
+    }
+    .single-event-date-badge {
+      background: #fff;
+      color: #242943;
+    }
+    .o365-single-export,
+    .o365-single-toggle-btn {
+      color: #fff;
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+    .single-event-panel {
+      background: rgba(0, 0, 0, 0.1);
+      border-top-color: rgba(255, 255, 255, 0.05);
+    }
+    .single-event-desc {
+      color: #ddd;
+    }
+
+    // Visszaszámláló sötét módja
+    .single-event-countdown {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.1);
+      .cd-label {
+        color: #aaa;
+      }
+    }
   }
 }
 
