@@ -4,6 +4,9 @@ namespace O365Calendar;
 use Elementor\Widget_Base;
 use Elementor\Controls_Manager;
 use Elementor\Group_Control_Typography;
+use Elementor\Group_Control_Border;
+use Elementor\Group_Control_Box_Shadow;
+use Elementor\Group_Control_Background;
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
@@ -15,7 +18,6 @@ class AgendaWidget extends Widget_Base {
     public function get_script_depends() { return [ 'o365-calendar-script' ]; }
 
     protected function register_controls() {
-        // --- ADATOK ELŐKÉSZÍTÉSE A TÖBBFIÓKOS RENDSZERBŐL ---
         $accounts = get_option( 'o365_accounts', [] );
         $calendar_options = [];
         $category_options = [];
@@ -33,59 +35,44 @@ class AgendaWidget extends Widget_Base {
             }
         }
 
+        // --- TARTALOM FÜL ---
         $this->start_controls_section('section_setup', ['label' => 'Adatforrás & Setup']);
-        
-        $this->add_control('auth_wizard_trigger', [
-            'type' => Controls_Manager::RAW_HTML,
-            'raw'  => '<button type="button" id="o365-trigger-wizard" class="elementor-button elementor-button-default" style="width:100%; background:#0073aa;"><i class="eicon-cog"></i> Setup Wizard</button>',
-        ]);
-
-        $this->add_control('calendar_id', [
-            'label' => 'Naptárak kiválasztása',
-            'type' => Controls_Manager::SELECT2,
-            'options' => $calendar_options,
-            'multiple' => true,
-            'label_block' => true,
-            'separator' => 'before'
-        ]);
-
-        $this->add_control('event_limit', [
-            'label' => 'Események száma',
-            'type' => Controls_Manager::NUMBER,
-            'default' => 5,
-        ]);
-
-        $this->add_control('category_filter', [
-            'label'       => 'Kategória szűrés',
-            'type'        => Controls_Manager::SELECT2,
-            'options'     => $category_options,
-            'multiple'    => true,
-            'label_block' => true,
-        ]);
-
-        // ÚJ GOMB: Segít az opciók frissítésében hitelesítés után
-        $this->add_control('refresh_lists', [
-            'type' => Controls_Manager::RAW_HTML,
-            'raw' => '<p style="font-size:11px; line-height:1.2; color:#888; margin-top:10px;">Új fiók hozzáadása után kattints a mentésre, majd frissítsd az oldalt a lista frissítéséhez.</p>',
-        ]);
-
+        $this->add_control('auth_wizard_trigger', ['type' => Controls_Manager::RAW_HTML, 'raw' => '<button type="button" id="o365-trigger-wizard" class="elementor-button elementor-button-default" style="width:100%; background:#0073aa;"><i class="eicon-cog"></i> Setup Wizard</button>']);
+        $this->add_control('calendar_id', ['label' => 'Naptárak', 'type' => Controls_Manager::SELECT2, 'options' => $calendar_options, 'multiple' => true, 'label_block' => true, 'separator' => 'before']);
+        $this->add_control('event_limit', ['label' => 'Események száma', 'type' => Controls_Manager::NUMBER, 'default' => 5]);
+        $this->add_control('category_filter', ['label' => 'Kategória szűrés', 'type' => Controls_Manager::SELECT2, 'options' => $category_options, 'multiple' => true, 'label_block' => true]);
         $this->end_controls_section();
 
-        // --- MEGJELENÍTÉS ÉS STÍLUSOK (ugyanaz mint eddig) ---
-        $this->start_controls_section('section_display', ['label' => 'Megjelenítés kapcsolók']);
-        $this->add_control('show_date', ['label' => 'Dátum', 'type' => Controls_Manager::SWITCHER, 'default' => 'yes']);
-        $this->add_control('show_time', ['label' => 'Időpont', 'type' => Controls_Manager::SWITCHER, 'default' => 'yes']);
-        $this->add_control('show_location', ['label' => 'Helyszín', 'type' => Controls_Manager::SWITCHER, 'default' => 'yes']);
-        $this->add_control('show_desc', ['label' => 'Leírás', 'type' => Controls_Manager::SWITCHER, 'default' => 'no']);
-        $this->add_control('show_export', ['label' => 'iCal gomb', 'type' => Controls_Manager::SWITCHER, 'default' => 'yes']);
+        $this->start_controls_section('section_display', ['label' => 'Elemek láthatósága']);
+        $this->add_control('show_date', ['label' => 'Dátum mutatása', 'type' => Controls_Manager::SWITCHER, 'default' => 'yes']);
+        $this->add_control('show_time', ['label' => 'Időpont mutatása', 'type' => Controls_Manager::SWITCHER, 'default' => 'yes']);
+        $this->add_control('show_location', ['label' => 'Helyszín mutatása', 'type' => Controls_Manager::SWITCHER, 'default' => 'yes']);
+        $this->add_control('show_desc', ['label' => 'Leírás mutatása', 'type' => Controls_Manager::SWITCHER, 'default' => 'no']);
+        $this->add_control('show_export', ['label' => 'iCal Letöltés gomb', 'type' => Controls_Manager::SWITCHER, 'default' => 'yes']);
+        $this->add_control('enable_modal', ['label' => 'Részletek Modal ablak', 'type' => Controls_Manager::SWITCHER, 'default' => 'yes', 'description' => 'Kattinthatóvá teszi az eseményt a részletekért.']);
         $this->end_controls_section();
 
-        $this->start_controls_section('section_style_templates', ['label' => 'Design Sablonok', 'tab' => \Elementor\Controls_Manager::TAB_STYLE]);
-        $this->add_control('design_template', [
-            'label' => 'Válassz alap sablont', 'type' => \Elementor\Controls_Manager::SELECT, 'default' => 'default',
-            'options' => ['default' => 'Weboldal stílusa', 'light' => 'Világos', 'dark' => 'Sötét', 'modern' => 'Modern'],
-            'prefix_class' => 'o365-agenda-template-',
-        ]);
+        // --- STÍLUS FÜL ---
+        $this->start_controls_section('style_general', ['label' => 'Általános lista stílus', 'tab' => Controls_Manager::TAB_STYLE]);
+        $this->add_group_control(Group_Control_Background::get_type(), ['name' => 'list_bg', 'selector' => '{{WRAPPER}} .o365-agenda-list']);
+        $this->add_control('item_padding', ['label' => 'Elemek belső margója', 'type' => Controls_Manager::DIMENSIONS, 'selectors' => ['{{WRAPPER}} .o365-agenda-item' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};']]);
+        $this->add_control('item_border_color', ['label' => 'Elválasztó vonal színe', 'type' => Controls_Manager::COLOR, 'selectors' => ['{{WRAPPER}} .o365-agenda-item' => 'border-bottom-color: {{VALUE}};']]);
+        $this->add_control('item_hover_bg', ['label' => 'Hover háttérszín', 'type' => Controls_Manager::COLOR, 'selectors' => ['{{WRAPPER}} .o365-agenda-item:hover' => 'background-color: {{VALUE}};']]);
+        $this->end_controls_section();
+
+        $this->start_controls_section('style_title', ['label' => 'Esemény Címe', 'tab' => Controls_Manager::TAB_STYLE]);
+        $this->add_group_control(Group_Control_Typography::get_type(), ['name' => 'title_typo', 'selector' => '{{WRAPPER}} .agenda-title']);
+        $this->add_control('title_color', ['label' => 'Cím színe', 'type' => Controls_Manager::COLOR, 'selectors' => ['{{WRAPPER}} .agenda-title' => 'color: {{VALUE}};']]);
+        $this->end_controls_section();
+
+        $this->start_controls_section('style_meta', ['label' => 'Időpont & Dátum', 'tab' => Controls_Manager::TAB_STYLE]);
+        $this->add_control('date_color', ['label' => 'Dátum színe', 'type' => Controls_Manager::COLOR, 'selectors' => ['{{WRAPPER}} .agenda-date' => 'color: {{VALUE}};']]);
+        $this->add_control('time_color', ['label' => 'Időpont színe', 'type' => Controls_Manager::COLOR, 'selectors' => ['{{WRAPPER}} .agenda-time' => 'color: {{VALUE}};']]);
+        $this->end_controls_section();
+
+        $this->start_controls_section('style_export_btn', ['label' => 'iCal Gomb', 'tab' => Controls_Manager::TAB_STYLE, 'condition' => ['show_export' => 'yes']]);
+        $this->add_control('btn_color', ['label' => 'Ikon színe', 'type' => Controls_Manager::COLOR, 'selectors' => ['{{WRAPPER}} .o365-agenda-export' => 'color: {{VALUE}}; border-color: {{VALUE}};']]);
+        $this->add_control('btn_hover_color', ['label' => 'Hover szín', 'type' => Controls_Manager::COLOR, 'selectors' => ['{{WRAPPER}} .o365-agenda-export:hover' => 'background-color: {{VALUE}}; color: #fff; border-color: {{VALUE}};']]);
         $this->end_controls_section();
     }
 
@@ -103,7 +90,8 @@ class AgendaWidget extends Widget_Base {
              data-show-time="<?php echo esc_attr($settings['show_time']); ?>"
              data-show-loc="<?php echo esc_attr($settings['show_location']); ?>"
              data-show-desc="<?php echo esc_attr($settings['show_desc']); ?>"
-             data-show-export="<?php echo esc_attr($settings['show_export']); ?>">
+             data-show-export="<?php echo esc_attr($settings['show_export']); ?>"
+             data-enable-modal="<?php echo esc_attr($settings['enable_modal']); ?>">
             <div class="o365-agenda-loading"><div class="spinner"></div></div>
         </div>
         <?php

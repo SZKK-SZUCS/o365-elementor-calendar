@@ -453,7 +453,7 @@ class O365AgendaWidget {
 
     if (!this.calendarId) {
       this.container.innerHTML =
-        '<div class="o365-empty">Válassz legalább egy naptárat a beállításokban!</div>';
+        '<div class="o365-empty">Válassz legalább egy naptárat!</div>';
       return;
     }
 
@@ -463,9 +463,51 @@ class O365AgendaWidget {
       loc: this.container.dataset.showLoc === "yes",
       desc: this.container.dataset.showDesc === "yes",
       export: this.container.dataset.showExport === "yes",
+      modal: this.container.dataset.enableModal === "yes",
     };
 
+    this.initModal();
     this.loadAgenda();
+  }
+
+  initModal() {
+    if (!this.config.modal) return;
+
+    // Minden Agenda kap egy saját modalt a DOM-ba
+    const modalHtml = `
+      <div class="o365-event-modal-overlay agenda-modal" style="opacity:0; visibility:hidden;">
+          <div class="o365-event-modal">
+              <button class="o365-modal-close">&times;</button>
+              <h3 class="o365-modal-title"></h3>
+              <div class="o365-modal-meta">
+                  <div class="meta-item time">
+                      <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                      <span></span>
+                  </div>
+                  <div class="meta-item loc" style="display:none;">
+                      <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                      <span></span>
+                  </div>
+              </div>
+              <div class="o365-modal-desc"></div>
+              <div class="o365-modal-actions" style="margin-top: 25px; border-top: 1px solid rgba(0,0,0,0.05); padding-top: 20px; text-align: right;">
+                  <button class="o365-export-ical-btn o365-agenda-modal-export">
+                      <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" style="vertical-align: middle; margin-right: 5px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                      Hozzáadás a naptárhoz
+                  </button>
+              </div>
+          </div>
+      </div>
+    `;
+    const wrapper = this.container.closest(".elementor-widget-container");
+    wrapper.insertAdjacentHTML("beforeend", modalHtml);
+
+    this.overlay = wrapper.querySelector(".o365-event-modal-overlay");
+    this.overlay.querySelector(".o365-modal-close").onclick = () =>
+      this.closeModal();
+    this.overlay.onclick = (e) => {
+      if (e.target === this.overlay) this.closeModal();
+    };
   }
 
   loadAgenda() {
@@ -473,8 +515,6 @@ class O365AgendaWidget {
     const end = new Date(
       new Date().getTime() + 60 * 24 * 60 * 60 * 1000,
     ).toISOString();
-
-    // Frissített URL email paraméter nélkül, mert a calendarId-ben benne van (email|id formában)
     const url = `/wp-json/o365cal/v1/events?calendar_id=${encodeURIComponent(
       this.calendarId,
     )}&start=${start}&end=${end}&category_filter=${encodeURIComponent(
@@ -483,13 +523,12 @@ class O365AgendaWidget {
 
     fetch(url)
       .then((res) => res.json())
-      .then((events) => {
-        this.renderAgenda(events.slice(0, this.limit));
-      })
-      .catch(() => {
-        this.container.innerHTML =
-          '<div class="o365-error">Hiba a betöltéskor. Ellenőrizd a naptár párosítást!</div>';
-      });
+      .then((events) => this.renderAgenda(events.slice(0, this.limit)))
+      .catch(
+        () =>
+          (this.container.innerHTML =
+            '<div class="o365-error">Hiba a betöltéskor.</div>'),
+      );
   }
 
   renderAgenda(events) {
@@ -512,7 +551,9 @@ class O365AgendaWidget {
       });
 
       html += `
-        <div class="o365-agenda-item">
+        <div class="o365-agenda-item ${
+          this.config.modal ? "is-clickable" : ""
+        }" data-idx="${idx}">
           <div class="agenda-meta">
             ${
               this.config.date
@@ -542,7 +583,7 @@ class O365AgendaWidget {
             this.config.export
               ? `
             <div class="agenda-actions">
-              <button class="o365-agenda-export" title="Letöltés naptárba" data-idx="${idx}">
+              <button class="o365-agenda-export" title="Letöltés" data-idx="${idx}">
                 <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
               </button>
             </div>
@@ -555,15 +596,59 @@ class O365AgendaWidget {
     html += "</div>";
     this.container.innerHTML = html;
 
-    // Export gombok bekötése az eseményekhez
-    this.container.querySelectorAll(".o365-agenda-export").forEach((btn) => {
-      btn.addEventListener("click", (e) => {
-        const index = e.currentTarget.dataset.idx;
-        // Dummy widget példány az export funkció eléréséhez
-        const exporter = new O365CalendarWidget(jQuery(this.container));
-        exporter.downloadICal(events[index]);
-      });
+    // Eseménykezelők
+    this.container.querySelectorAll(".o365-agenda-item").forEach((item) => {
+      item.onclick = (e) => {
+        if (e.target.closest(".o365-agenda-export")) return;
+        if (this.config.modal) this.openModal(events[item.dataset.idx]);
+      };
     });
+
+    this.container.querySelectorAll(".o365-agenda-export").forEach((btn) => {
+      btn.onclick = () => {
+        const exporter = new O365CalendarWidget(jQuery(this.container));
+        exporter.downloadICal(events[btn.dataset.idx]);
+      };
+    });
+  }
+
+  openModal(event) {
+    const modal = this.overlay.querySelector(".o365-event-modal");
+    modal.querySelector(".o365-modal-title").textContent = event.title;
+
+    const start = new Date(event.start);
+    const opt = {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    };
+    modal.querySelector(".meta-item.time span").textContent =
+      start.toLocaleString("hu-HU", opt);
+
+    const locWrap = modal.querySelector(".meta-item.loc");
+    if (event.extendedProps.location) {
+      locWrap.querySelector("span").textContent = event.extendedProps.location;
+      locWrap.style.display = "flex";
+    } else locWrap.style.display = "none";
+
+    modal.querySelector(".o365-modal-desc").innerHTML =
+      event.extendedProps.body || "<em>Nincs leírás.</em>";
+
+    this.overlay.querySelector(".o365-agenda-modal-export").onclick = () => {
+      const exporter = new O365CalendarWidget(jQuery(this.container));
+      exporter.downloadICal(event);
+    };
+
+    this.overlay.style.visibility = "visible";
+    this.overlay.style.opacity = "1";
+  }
+
+  closeModal() {
+    this.overlay.style.opacity = "0";
+    setTimeout(() => {
+      this.overlay.style.visibility = "hidden";
+    }, 300);
   }
 }
 
