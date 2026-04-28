@@ -6,31 +6,13 @@ import interactionPlugin from "@fullcalendar/interaction";
 import allLocales from "@fullcalendar/core/locales-all";
 import "./style.scss";
 
-// KÖZÖS HELPER: Fordítások (i18n)
+// KÖZÖS HELPER: Fordítások (i18n belső szövegekhez)
 function getTrans(locale, key) {
   const lang = locale.split("-")[0];
   const dict = {
-    hu: {
-      allday: "Egész napos",
-      join: "Csatlakozás",
-      link: "Megnyitás",
-      ongoing: "Folyamatban",
-      details: "Részletek",
-    },
-    en: {
-      allday: "All day",
-      join: "Join",
-      link: "Open link",
-      ongoing: "In progress",
-      details: "Details",
-    },
-    de: {
-      allday: "Ganztägig",
-      join: "Teilnehmen",
-      link: "Öffnen",
-      ongoing: "Läuft",
-      details: "Details",
-    },
+    hu: { allday: "Egész napos", ongoing: "Folyamatban" },
+    en: { allday: "All day", ongoing: "In progress" },
+    de: { allday: "Ganztägig", ongoing: "Läuft" },
   };
   return dict[lang] && dict[lang][key] ? dict[lang][key] : dict["en"][key];
 }
@@ -58,7 +40,7 @@ function getLinkIcon(url) {
   return `<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>`;
 }
 
-// KÖZÖS HELPER: Dátum és Idő formázó
+// KÖZÖS HELPER: Dátum és Idő formázó (Többnapos és Egésznapos kezelés)
 function formatEventDateTime(event, locale) {
   const startDate = new Date(event.start);
   let dateStr = startDate.toLocaleDateString(locale, {
@@ -183,13 +165,15 @@ class O365CalendarWidget {
     this.locale = this.container.dataset.locale || "hu-HU";
     this.slotMin = this.container.dataset.slotMin || "00:00:00";
     this.slotMax = this.container.dataset.slotMax || "24:00:00";
-    this.validStart = this.container.dataset.validStart || null;
-    this.validEnd = this.container.dataset.validEnd || null;
     this.privacy = this.container.dataset.privacy || "mask";
     this.maskText = this.container.dataset.maskText || "Foglalt";
     this.categoryFilter = this.container.dataset.categoryFilter || "";
-    this.useColors = this.container.dataset.useColors || "yes";
     this.displayEventTime = this.container.dataset.displayEventTime === "yes";
+
+    // Dinamikus szövegek beolvasása Elementorból
+    this.txtExport = this.container.dataset.textExport || "Mentés naptárba";
+    this.txtJoin = this.container.dataset.textJoin || "Csatlakozás";
+    this.txtLink = this.container.dataset.textLink || "Megnyitás";
 
     this.eventCache = {};
     this.searchTerm = "";
@@ -299,15 +283,11 @@ class O365CalendarWidget {
       displayEventTime: this.displayEventTime,
       locales: allLocales,
       locale: this.locale.split("-")[0],
-      timeZone: this.container.dataset.timezone || "local",
+      timeZone: "local",
       height: "100%",
       expandRows: true,
       slotMinTime: this.slotMin,
       slotMaxTime: this.slotMax,
-      validRange: {
-        start: this.validStart || null,
-        end: this.validEnd || null,
-      },
       headerToolbar: {
         left: "prev,next today",
         center: "title",
@@ -356,9 +336,9 @@ class O365CalendarWidget {
       info.endStr,
     )}&privacy=${this.privacy}&mask_text=${encodeURIComponent(
       this.maskText,
-    )}&category_filter=${encodeURIComponent(this.categoryFilter)}&use_colors=${
-      this.useColors
-    }`;
+    )}&category_filter=${encodeURIComponent(
+      this.categoryFilter,
+    )}&use_colors=yes`;
     fetch(url)
       .then((res) => res.json())
       .then((data) => {
@@ -459,8 +439,8 @@ class O365CalendarWidget {
         meetingLink.includes("teams") ||
         meetingLink.includes("zoom") ||
         meetingLink.includes("meet")
-          ? getTrans(this.locale, "join")
-          : getTrans(this.locale, "link");
+          ? this.txtJoin
+          : this.txtLink;
       buttonsHtml += `<a href="${meetingLink}" target="_blank" class="o365-meeting-btn">${getLinkIcon(
         meetingLink,
       )} ${btnText}</a>`;
@@ -470,7 +450,7 @@ class O365CalendarWidget {
       buttonsHtml += `
         <button class="o365-export-ical-btn o365-agenda-modal-export">
             <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" style="vertical-align: middle; margin-right: 5px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-            Mentés naptárba
+            ${this.txtExport}
         </button>`;
     }
 
@@ -520,6 +500,13 @@ class O365AgendaWidget {
       return;
     }
 
+    // Dinamikus Szövegek
+    this.txtExport = this.container.dataset.textExport || "Mentés naptárba";
+    this.txtJoin = this.container.dataset.textJoin || "Csatlakozás";
+    this.txtLink = this.container.dataset.textLink || "Megnyitás";
+    this.loadMoreText =
+      this.container.dataset.loadMoreText || "További események betöltése";
+
     this.config = {
       date: this.container.dataset.showDate === "yes",
       time: this.container.dataset.showTime === "yes",
@@ -531,8 +518,6 @@ class O365AgendaWidget {
       loadMore: this.container.dataset.showLoadMore === "yes",
     };
 
-    this.loadMoreText =
-      this.container.dataset.loadMoreText || "További események betöltése";
     this.allEvents = [];
     this.currentLimit = this.limit;
 
@@ -617,6 +602,7 @@ class O365AgendaWidget {
 
     visibleEvents.forEach((event, idx) => {
       const { dateStr, timeStr } = formatEventDateTime(event, this.locale);
+      const isPrivate = event.extendedProps?.isPrivate;
 
       if (this.config.grouping !== "none") {
         const startDate = new Date(event.start);
@@ -644,22 +630,23 @@ class O365AgendaWidget {
 
       let actionsHtml = "";
       const meetingLink = getMeetingLink(event.extendedProps?.body);
-      if (meetingLink) {
+      if (meetingLink && !isPrivate) {
         actionsHtml += `
-            <a href="${meetingLink}" target="_blank" class="o365-agenda-meeting-btn" title="Csatlakozás">
+            <a href="${meetingLink}" target="_blank" class="o365-agenda-meeting-btn" title="${
+              this.txtJoin
+            }">
               ${getLinkIcon(meetingLink)}
             </a>
           `;
       }
-      if (this.config.export) {
+      if (this.config.export && !isPrivate) {
         actionsHtml += `
-            <button class="o365-agenda-export" title="Letöltés naptárba" data-idx="${idx}">
+            <button class="o365-agenda-export" title="${this.txtExport}" data-idx="${idx}">
               <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
             </button>
           `;
       }
 
-      // EMOJI CSERÉLVE SVG-RE
       html += `
         <div class="o365-agenda-item ${
           this.config.modal ? "is-clickable" : ""
@@ -679,12 +666,12 @@ class O365AgendaWidget {
           <div class="agenda-content">
             <div class="agenda-title">${event.title}</div>
             ${
-              this.config.loc && event.extendedProps.location
+              this.config.loc && event.extendedProps.location && !isPrivate
                 ? `<div class="agenda-loc"><svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" style="vertical-align: text-bottom; margin-right: 4px;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> ${event.extendedProps.location}</div>`
                 : ""
             }
             ${
-              this.config.desc && event.extendedProps.body
+              this.config.desc && event.extendedProps.body && !isPrivate
                 ? `<div class="agenda-desc">${event.extendedProps.body}</div>`
                 : ""
             }
@@ -767,8 +754,8 @@ class O365AgendaWidget {
         meetingLink.includes("teams") ||
         meetingLink.includes("zoom") ||
         meetingLink.includes("meet")
-          ? getTrans(this.locale, "join")
-          : getTrans(this.locale, "link");
+          ? this.txtJoin
+          : this.txtLink;
       buttonsHtml += `<a href="${meetingLink}" target="_blank" class="o365-meeting-btn">${getLinkIcon(
         meetingLink,
       )} ${btnText}</a>`;
@@ -778,7 +765,7 @@ class O365AgendaWidget {
       buttonsHtml += `
         <button class="o365-export-ical-btn o365-agenda-modal-export">
             <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" style="vertical-align: middle; margin-right: 5px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-            Mentés naptárba
+            ${this.txtExport}
         </button>`;
     }
 
@@ -799,7 +786,7 @@ class O365AgendaWidget {
 }
 
 // ==========================================
-// 3. SINGLE EVENT WIDGET (Accordion Panel)
+// 3. SINGLE EVENT WIDGET
 // ==========================================
 class O365SingleEventWidget {
   constructor($scope) {
@@ -823,6 +810,11 @@ class O365SingleEventWidget {
       this.container.dataset.searchStrictness || "contains";
     this.expiryMode = this.container.dataset.expiryMode;
     this.maskText = this.container.dataset.maskText;
+
+    // Dinamikus szövegek beolvasása
+    this.txtDetails = this.container.dataset.textDetails || "Részletek";
+    this.txtJoin = this.container.dataset.textJoin || "Csatlakozás";
+    this.txtLink = this.container.dataset.textLink || "Megnyitás";
 
     this.config = {
       loc: this.container.dataset.showLoc === "yes",
@@ -935,8 +927,8 @@ class O365SingleEventWidget {
         meetingLink.includes("teams") ||
         meetingLink.includes("zoom") ||
         meetingLink.includes("meet")
-          ? getTrans(this.locale, "join")
-          : getTrans(this.locale, "link");
+          ? this.txtJoin
+          : this.txtLink;
       meetingHtml = `<a href="${meetingLink}" target="_blank" class="o365-meeting-btn" style="margin-top: 15px;">${getLinkIcon(
         meetingLink,
       )} ${btnText}</a>`;
@@ -962,7 +954,7 @@ class O365SingleEventWidget {
     let toggleBtnHtml = hasPanelContent
       ? `
         <button class="o365-single-toggle-btn">
-           ${getTrans(this.locale, "details")}
+           ${this.txtDetails}
            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><polyline points="6 9 12 15 18 9"></polyline></svg>
         </button>`
       : "";

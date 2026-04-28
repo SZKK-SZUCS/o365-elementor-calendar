@@ -19,7 +19,7 @@ jQuery(document).ready(function ($) {
                         </div>
 
                         <div id="o365-step-2" class="o365-step" style="display:none;">
-                            <p style="margin-top:0; color:#555;"><strong>2. Lépés:</strong> Írd be a 6 számjegyű kódot:</p>
+                            <p style="margin-top:0; color:#555;"><strong>2. Lépés:</strong> Írd be a 6 számjegyű kódot (emailben érkezik):</p>
                             <input type="text" id="o365-code" style="width:100%; padding:15px; border:1px solid #ddd; border-radius:6px; text-align:center; font-size:26px; letter-spacing:6px;" placeholder="000000">
                             <button id="o365-verify" style="width:100%; padding:14px; background:#46b450; color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:600; margin-top:15px;">Ellenőrzés</button>
                         </div>
@@ -29,8 +29,9 @@ jQuery(document).ready(function ($) {
         `);
   }
 
+  // JAVÍTVA A VÁLTOZÓ NÉV
   const getNonce = () =>
-    typeof o365EditorConfig !== "undefined" ? o365EditorConfig.nonce : "";
+    typeof o365_editor_globals !== "undefined" ? o365_editor_globals.nonce : "";
 
   const showLog = (msg, type = "info") => {
     const bg = type === "error" ? "#fcf0f1" : "#f0f6fb";
@@ -39,10 +40,8 @@ jQuery(document).ready(function ($) {
   };
 
   $(document).on("click", "#o365-trigger-wizard", function () {
-    const model = elementor.getPanelView().getCurrentPageView().model;
-    $("#o365-email").val(model.getSetting("target_email") || "");
-
-    // Alaphelyzetbe állítjuk a modalt, hátha újra nyitják
+    // Alaphelyzetbe állítjuk a modalt
+    $("#o365-email").val("");
     $("#o365-step-1").show();
     $("#o365-step-2").hide();
     $("#o365-log").hide();
@@ -68,7 +67,7 @@ jQuery(document).ready(function ($) {
       url: "/wp-json/o365cal/v1/auth/request-code",
       method: "POST",
       data: { email: email },
-      beforeSend: (xhr) => xhr.setRequestHeader("X-WP-Nonce", getNonce()),
+      beforeSend: (xhr) => xhr.setRequestHeader("X-WP-Nonce", getNonce()), // Nonce bekötve!
     })
       .done((res) => {
         $("#o365-step-1").hide();
@@ -91,25 +90,22 @@ jQuery(document).ready(function ($) {
       url: "/wp-json/o365cal/v1/auth/verify-code",
       method: "POST",
       data: { email: $("#o365-email").val(), code: code },
-      beforeSend: (xhr) => xhr.setRequestHeader("X-WP-Nonce", getNonce()),
+      beforeSend: (xhr) => xhr.setRequestHeader("X-WP-Nonce", getNonce()), // Nonce bekötve!
     })
       .done((res) => {
         showLog("Sikeres hitelesítés! Ablak bezárása...");
 
         setTimeout(() => {
-          // 1. Bezárjuk a modalt
           $("#o365-setup-modal").hide();
 
-          // 2. Elementor natív Toast értesítés (ha elérhető), vagy sima alert
           const successMsg =
-            "O365 Hitelesítés sikeres! A naptárak legördülő listája a következő oldalfrissítés (F5) után fog frissülni a bal oldalsávban.";
+            "O365 Hitelesítés sikeres! Kérlek FRISSÍTS RÁ AZ OLDALRA (F5), hogy a naptár-választó listában megjelenjenek az új naptárak!";
           if (typeof elementor !== "undefined" && elementor.notifications) {
             elementor.notifications.showToast({ message: successMsg });
           } else {
             alert(successMsg);
           }
 
-          // 3. Csak a belső előnézetet frissítjük (nem veszik el a mentetlen munka!)
           if (elementor && elementor.reloadPreview) {
             elementor.reloadPreview();
           }
@@ -134,33 +130,5 @@ jQuery(document).ready(function ($) {
       elementor.reloadPreview();
       setTimeout(() => btn.html(originalHtml).prop("disabled", false), 2500);
     }
-  });
-
-  // --- Stílus Reset ---
-  $(document).on("click", "#o365-reset-styles", function (e) {
-    if (!confirm("Biztosan törölni akarsz minden egyedi stílusbeállítást?"))
-      return;
-    const model = elementor.getPanelView().getCurrentPageView().model;
-    const settings = model.attributes.settings.attributes;
-
-    Object.keys(settings).forEach((key) => {
-      if (
-        key.includes("color") ||
-        key.includes("bg") ||
-        key.includes("typography")
-      ) {
-        model.setSetting(key, "");
-      }
-    });
-    elementor.getPanelView().getCurrentPageView().render();
-  });
-
-  // --- Dropdown elrejtése ha csak 1 nézet aktív ---
-  $(document).on("change", 'input[data-setting^="enable_"]', function () {
-    const activeCount = $('input[data-setting^="enable_"]:checked').length;
-    const dropdowns = $(
-      ".elementor-control-default_view_desktop, .elementor-control-default_view_tablet, .elementor-control-default_view_mobile",
-    );
-    activeCount > 1 ? dropdowns.show() : dropdowns.hide();
   });
 });

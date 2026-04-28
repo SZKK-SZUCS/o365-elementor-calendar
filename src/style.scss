@@ -6,7 +6,7 @@ $brand-cyan: #50adc9;
 $tahoma: "Tahoma", "Geneva", sans-serif;
 
 // =========================================
-// 1. FŐ KONTÉNER ÉS FLEXBOX LAYOUT (Nagy Naptár)
+// 1. FŐ KONTÉNER ÉS GLOBÁLIS ELEMEK
 // =========================================
 .o365-calendar-wrapper {
   display: flex;
@@ -94,9 +94,36 @@ $tahoma: "Tahoma", "Geneva", sans-serif;
   }
 }
 
+// --- ÜRES ÁLLAPOTOK (Minden Widgethez) ---
+.o365-empty,
+.o365-single-mask,
+.fc .fc-empty-message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 150px;
+  width: 100%;
+  padding: 40px 20px;
+  border: 2px dashed #eee;
+  border-radius: 12px;
+  color: #aaa;
+  font-style: italic;
+  background: transparent;
+  transition: all 0.3s ease;
+}
+
+// FullCalendar és Agenda korrekciók az üres állapothoz
+.fc .fc-empty-message {
+  border: none;
+  padding: 80px 20px;
+}
+.o365-agenda-list-wrapper:has(.o365-empty) {
+  border: none;
+}
+
 // =========================================
-// 1.5 GLOBÁLIS ESEMÉNY MODAL (Nagy Naptár & Agenda)
-// (Kivettük a calendar-wrapperből, hogy az Agenda is lássa)
+// 2. GLOBÁLIS ESEMÉNY MODAL
 // =========================================
 .o365-event-modal-overlay {
   position: absolute;
@@ -114,6 +141,10 @@ $tahoma: "Tahoma", "Geneva", sans-serif;
     opacity 0.3s ease,
     visibility 0.3s ease;
   backdrop-filter: blur(3px);
+
+  &.agenda-modal {
+    z-index: 99999;
+  }
 
   .o365-event-modal {
     background-color: #ffffff;
@@ -182,7 +213,6 @@ $tahoma: "Tahoma", "Geneva", sans-serif;
       margin-bottom: 20px;
       color: #555;
       font-size: 14px;
-
       .meta-item {
         display: flex;
         align-items: center;
@@ -213,13 +243,8 @@ $tahoma: "Tahoma", "Geneva", sans-serif;
   }
 }
 
-// Speciális Agenda Modal igazítás
-.o365-event-modal-overlay.agenda-modal {
-  z-index: 99999;
-}
-
 // =========================================
-// 2. DESIGN SABLONOK (Prefix Classes)
+// 3. DESIGN SABLONOK (Prefix Classes)
 // =========================================
 .o365-template-light {
   .o365-calendar-wrapper {
@@ -276,9 +301,6 @@ $tahoma: "Tahoma", "Geneva", sans-serif;
   .fc-list-event:hover td {
     background-color: rgba(255, 255, 255, 0.05) !important;
   }
-  .fc-empty-message {
-    color: rgba(255, 255, 255, 0.6) !important;
-  }
   .o365-search-input {
     background: rgba(255, 255, 255, 0.1) !important;
     color: #fff !important;
@@ -321,7 +343,7 @@ $tahoma: "Tahoma", "Geneva", sans-serif;
 }
 
 // =========================================
-// 3. FULLCALENDAR ALAP STÍLUSOK FELÜLÍRÁSA
+// 4. FULLCALENDAR ALAP STÍLUSOK FELÜLÍRÁSA
 // =========================================
 .fc {
   .fc-toolbar {
@@ -373,16 +395,10 @@ $tahoma: "Tahoma", "Geneva", sans-serif;
       background-color: #f1f7fc !important;
     }
   }
-  .fc-empty-message {
-    padding: 4rem 2rem;
-    color: #888;
-    font-style: italic;
-    font-size: 15px;
-  }
 }
 
 // =========================================
-// 4. HOVER INFO KÁRTYA (Tooltip)
+// 5. HOVER INFO KÁRTYA (Tooltip)
 // =========================================
 .o365-calendar-tooltip {
   position: absolute;
@@ -427,18 +443,16 @@ $tahoma: "Tahoma", "Geneva", sans-serif;
 }
 
 // =========================================
-// 5. AGENDA WIDGET STÍLUSOK
+// 6. AGENDA WIDGET STÍLUSOK
 // =========================================
 .o365-agenda-container {
   font-family: "Tahoma", sans-serif;
   display: flex;
   flex-direction: column;
-  .o365-agenda-list-wrapper {
-    overflow-y: auto; // Belső görgetés bekapcsolása
-    flex-grow: 1;
-    // Elementorból jövő max-height lesz itt érvényes
 
-    /* Szép vékony görgetősáv (Chrome/Safari) */
+  .o365-agenda-list-wrapper {
+    overflow-y: auto;
+    flex-grow: 1;
     &::-webkit-scrollbar {
       width: 6px;
     }
@@ -460,30 +474,7 @@ $tahoma: "Tahoma", "Geneva", sans-serif;
     border-radius: inherit;
     overflow: hidden;
   }
-  .o365-load-more-wrap {
-    text-align: center;
-    padding: 20px;
-    border-top: 1px solid rgba(0, 0, 0, 0.05);
 
-    .o365-load-more-btn {
-      background: $brand-cyan;
-      color: #fff;
-      border: none;
-      padding: 10px 25px;
-      border-radius: 30px;
-      font-family: inherit;
-      font-size: 14px;
-      font-weight: bold;
-      cursor: pointer;
-      transition: all 0.2s;
-
-      &:hover {
-        background: darken($brand-cyan, 10%);
-        transform: translateY(-2px);
-        box-shadow: 0 4px 10px rgba($brand-cyan, 0.3);
-      }
-    }
-  }
   .agenda-group-header {
     background: rgba($brand-cyan, 0.08);
     color: $brand-deep;
@@ -494,7 +485,6 @@ $tahoma: "Tahoma", "Geneva", sans-serif;
     letter-spacing: 0.5px;
     border-bottom: 2px solid rgba($brand-cyan, 0.15);
     border-top: 1px solid rgba(0, 0, 0, 0.03);
-
     &:first-child {
       border-top: none;
     }
@@ -583,13 +573,12 @@ $tahoma: "Tahoma", "Geneva", sans-serif;
       }
     }
   }
+
   .o365-agenda-footer {
     padding: 15px;
     text-align: center;
     border-top: 1px solid rgba(0, 0, 0, 0.05);
-    background: #fff; // Hogy fixen látsszon a gomb
-
-    // A GOMB STÍLUSA
+    background: #fff;
     .o365-load-more-btn {
       background: $brand-cyan;
       color: #fff;
@@ -601,7 +590,6 @@ $tahoma: "Tahoma", "Geneva", sans-serif;
       font-weight: bold;
       cursor: pointer;
       transition: all 0.2s;
-
       &:hover {
         background: darken($brand-cyan, 10%);
         transform: translateY(-2px);
@@ -611,7 +599,6 @@ $tahoma: "Tahoma", "Geneva", sans-serif;
   }
 }
 
-// Agenda Sablonok
 .o365-agenda-template-dark {
   background: #242943;
   border-radius: 8px;
@@ -622,12 +609,6 @@ $tahoma: "Tahoma", "Geneva", sans-serif;
   .o365-agenda-item {
     border-bottom-color: rgba(255, 255, 255, 0.1);
   }
-
-  .o365-load-more-wrap {
-    border-top-color: rgba(255, 255, 255, 0.1);
-  }
-
-  // Sötét fejléc stílus
   .agenda-group-header {
     background: rgba(255, 255, 255, 0.05);
     color: $brand-cyan;
@@ -640,20 +621,8 @@ $tahoma: "Tahoma", "Geneva", sans-serif;
   }
 }
 
-.o365-agenda-template-modern {
-  .o365-agenda-item {
-    border: 1px solid #f0f0f0;
-    border-radius: 12px;
-    margin-bottom: 10px;
-    &:hover {
-      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-      transform: translateY(-2px);
-    }
-  }
-}
-
 // =========================================
-// 6. SINGLE EVENT WIDGET STÍLUSOK
+// 7. SINGLE EVENT WIDGET STÍLUSOK
 // =========================================
 .o365-single-event-container {
   font-family: "Tahoma", sans-serif;
@@ -667,7 +636,6 @@ $tahoma: "Tahoma", "Geneva", sans-serif;
     position: relative;
     transition: transform 0.3s ease;
     overflow: hidden;
-
     &:hover {
       transform: translateY(-5px);
     }
@@ -682,12 +650,10 @@ $tahoma: "Tahoma", "Geneva", sans-serif;
     .single-event-panel {
       background: #fdfdfd;
       border-top: 1px solid #eee;
-
       .single-event-panel-inner {
         padding: 25px;
         padding-top: 20px;
       }
-
       .single-event-loc {
         font-size: 14px;
         color: #888;
@@ -699,7 +665,6 @@ $tahoma: "Tahoma", "Geneva", sans-serif;
           flex-shrink: 0;
         }
       }
-
       .single-event-desc {
         font-size: 14px;
         color: #555;
@@ -754,7 +719,6 @@ $tahoma: "Tahoma", "Geneva", sans-serif;
         font-weight: bold;
       }
 
-      // VISSZASZÁMLÁLÓ VISSZARAKVA
       .single-event-countdown {
         margin-top: 15px;
         display: flex;
@@ -765,7 +729,6 @@ $tahoma: "Tahoma", "Geneva", sans-serif;
         border-radius: 6px;
         display: inline-flex;
         border: 1px solid rgba($brand-cyan, 0.2);
-
         .cd-val {
           font-weight: bold;
           color: $brand-cyan;
@@ -793,7 +756,6 @@ $tahoma: "Tahoma", "Geneva", sans-serif;
       display: flex;
       align-items: center;
       gap: 10px;
-
       .o365-single-toggle-btn {
         background: transparent;
         border: 1px solid #eee;
@@ -807,16 +769,13 @@ $tahoma: "Tahoma", "Geneva", sans-serif;
         align-items: center;
         gap: 6px;
         transition: all 0.2s;
-
         svg {
           transition: transform 0.3s ease;
         }
-
         &:hover {
           border-color: #50adc9;
           color: #50adc9;
         }
-
         &.is-open {
           background: rgba(80, 173, 201, 0.05);
           border-color: #50adc9;
@@ -826,7 +785,6 @@ $tahoma: "Tahoma", "Geneva", sans-serif;
           }
         }
       }
-
       .o365-single-export {
         background: none;
         border: 1px solid #eee;
@@ -848,18 +806,8 @@ $tahoma: "Tahoma", "Geneva", sans-serif;
       }
     }
   }
-
-  .o365-single-mask {
-    padding: 20px;
-    text-align: center;
-    border: 2px dashed #eee;
-    border-radius: 12px;
-    color: #aaa;
-    font-style: italic;
-  }
 }
 
-// SÖTÉT SABLON KIEGÉSZÍTÉSE
 .o365-single-template-dark {
   .o365-single-card {
     background: #242943;
@@ -882,8 +830,6 @@ $tahoma: "Tahoma", "Geneva", sans-serif;
     .single-event-desc {
       color: #ddd;
     }
-
-    // Visszaszámláló sötét módja
     .single-event-countdown {
       background: rgba(255, 255, 255, 0.05);
       border-color: rgba(255, 255, 255, 0.1);
@@ -894,33 +840,8 @@ $tahoma: "Tahoma", "Geneva", sans-serif;
   }
 }
 
-// Single Event Sablonok
-.o365-single-template-dark {
-  .single-event-countdown {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.1);
-    .cd-label {
-      color: #aaa;
-    }
-  }
-  .o365-single-card {
-    background: #242943;
-    .single-event-title {
-      color: #fff;
-    }
-    .single-event-date-badge {
-      background: #fff;
-      color: #242943;
-    }
-    .o365-single-export {
-      color: #fff;
-      border-color: rgba(255, 255, 255, 0.1);
-    }
-  }
-}
-
 // =========================================
-// 7. ONLINE MEETING / LINK GOMBOK
+// 8. ONLINE MEETING / LINK GOMBOK
 // =========================================
 .o365-meeting-btn {
   background-color: #f0f0f0;
@@ -934,7 +855,6 @@ $tahoma: "Tahoma", "Geneva", sans-serif;
   transition: all 0.2s;
   text-decoration: none;
   display: inline-block;
-
   &:hover {
     background-color: #e4e4e4;
     transform: translateY(-2px);
@@ -956,7 +876,6 @@ $tahoma: "Tahoma", "Geneva", sans-serif;
   align-items: center;
   justify-content: center;
   margin-right: 5px;
-
   &:hover {
     border-color: #50adc9;
     color: #50adc9;
@@ -966,29 +885,4 @@ $tahoma: "Tahoma", "Geneva", sans-serif;
     width: 18px;
     height: 18px;
   }
-}
-
-.o365-single-meeting-btn {
-  background: transparent;
-  border: 1px solid #eee;
-  width: 45px;
-  height: 45px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #242943;
-  transition: all 0.2s;
-  margin-right: 10px;
-
-  &:hover {
-    background: #50adc9;
-    color: #fff;
-    border-color: #50adc9;
-  }
-}
-
-.o365-single-template-dark .o365-single-meeting-btn {
-  color: #fff;
-  border-color: rgba(255, 255, 255, 0.1);
 }

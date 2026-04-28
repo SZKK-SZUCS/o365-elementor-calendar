@@ -1,15 +1,14 @@
 {
-  "name": "szuro/o365-elementor-calendar",
-  "description": "O365 Calendar for Elementor",
+  "name": "szkk-szucs/o365-elementor-calendar",
+  "description": "Enterprise Microsoft 365 Calendar integration for Elementor",
   "type": "wordpress-plugin",
   "authors": [
     {
-      "name": "szurofkamarcii",
-      "email": "szurofkamarcii@gmail.com"
+      "name": "SZKK Szucs"
     }
   ],
   "require": {
-    "yahnis-elsts/plugin-update-checker": "^5.6"
+    "php": ">=8.0"
   },
   "autoload": {
     "psr-4": {

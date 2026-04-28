@@ -1,14 +1,15 @@
 <?php
-namespace O365Calendar;
+namespace O365Calendar\API;
 
-use WP_REST_Request;
-use WP_REST_Response;
+if ( ! defined( 'ABSPATH' ) ) exit;
 
 class AjaxHandlers {
+    
     private $api;
 
-    public function __construct( GraphAPI $api ) {
-        $this->api = $api;
+    public function __construct() {
+        // ITT a hiba javítása: példányosítjuk a GraphAPI-t!
+        $this->api = new GraphAPI();
         add_action( 'rest_api_init', [ $this, 'register_routes' ] );
     }
 
@@ -37,9 +38,9 @@ class AjaxHandlers {
         set_transient( 'o365_auth_' . md5( $email ), $code, 15 * MINUTE_IN_SECONDS );
         
         $result = $this->api->send_verification_email( $email, $code );
-        if ( is_wp_error( $result ) ) return new WP_REST_Response( [ 'message' => $result->get_error_message() ], 400 );
+        if ( is_wp_error( $result ) ) return new \WP_REST_Response( [ 'message' => $result->get_error_message() ], 400 );
         
-        return new WP_REST_Response( [ 'message' => 'Kód elküldve!' ], 200 );
+        return new \WP_REST_Response( [ 'message' => 'Kód elküldve!' ], 200 );
     }
 
     public function verify_auth_code( $request ) {
@@ -90,7 +91,6 @@ class AjaxHandlers {
         $mask_text       = sanitize_text_field( $request->get_param( 'mask_text' ) ?: 'Foglalt' );
         $category_filter = sanitize_text_field( $request->get_param( 'category_filter' ) ?: '' );
 
-        // A cache kulcsból kikerül a sima email, mert a calendar_id már tartalmazza
         $cache_key = 'o365_events_' . md5( $calendar_ids_raw . $start . $end . $use_colors . $privacy . $mask_text . $category_filter );
         $cached_events = get_transient( $cache_key );
         
@@ -129,7 +129,7 @@ class AjaxHandlers {
             }
 
             $events = $this->api->get_events( $email, trim($cal_id), $start, $end );
-            if ( is_wp_error( $events ) ) continue; // Ne fagyjon le, ha csak 1 fióknál van gond
+            if ( is_wp_error( $events ) ) continue;
 
             foreach ( (array)$events as $event ) {
                 $event_categories = $event['categories'] ?? [];
@@ -190,7 +190,6 @@ class AjaxHandlers {
         return new \WP_REST_Response( $all_events, 200 );
     }
 
-    // A Microsoft "presetX" színeinek lefordítása igazi HEX kódokra
     private function map_preset_color( $preset ) {
         $colors = [
             'preset0' => '#e74c3c', 'preset1' => '#e67e22', 'preset2' => '#d35400',

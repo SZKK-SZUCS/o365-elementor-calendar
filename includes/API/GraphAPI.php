@@ -1,29 +1,30 @@
 <?php
-namespace O365Calendar;
+namespace O365Calendar\API;
 
-use WP_Error;
+if ( ! defined( 'ABSPATH' ) ) exit;
 
 class GraphAPI {
-
     private $tenant_id;
     private $client_id;
     private $client_secret;
     private $sender_email;
+    private $token = null;
 
     public function __construct() {
-        $this->tenant_id     = defined( 'O365_TENANT_ID' ) ? O365_TENANT_ID : '';
-        $this->client_id     = defined( 'O365_CLIENT_ID' ) ? O365_CLIENT_ID : '';
-        $this->client_secret = defined( 'O365_CLIENT_SECRET' ) ? O365_CLIENT_SECRET : '';
-        $this->sender_email  = defined( 'O365_SENDER_EMAIL' ) ? O365_SENDER_EMAIL : '';
+        // Biztonságos beolvasás a wp-config.php-ból
+        $this->tenant_id     = defined('O365_TENANT_ID') ? O365_TENANT_ID : '';
+        $this->client_id     = defined('O365_CLIENT_ID') ? O365_CLIENT_ID : '';
+        $this->client_secret = defined('O365_CLIENT_SECRET') ? O365_CLIENT_SECRET : '';
+        $this->sender_email  = defined('O365_SENDER_EMAIL') ? O365_SENDER_EMAIL : '';
     }
 
     public function is_configured() {
-        return ! empty( $this->tenant_id ) && ! empty( $this->client_id ) && ! empty( $this->client_secret );
+        return !empty($this->tenant_id) && !empty($this->client_id) && !empty($this->client_secret) && !empty($this->sender_email);
     }
 
     public function get_access_token() {
         if ( ! $this->is_configured() ) {
-            return new WP_Error( 'missing_config', __( 'O365 konfiguráció hiányzik.', 'o365-calendar' ) );
+            return new \WP_Error( 'missing_config', __( 'O365 konfiguráció hiányzik.', 'o365-elementor-calendar' ) );
         }
 
         $token = get_transient( 'o365_access_token' );
@@ -43,7 +44,7 @@ class GraphAPI {
 
         $body = json_decode( wp_remote_retrieve_body( $response ), true );
         if ( isset( $body['error'] ) ) {
-            return new WP_Error( 'api_error', $body['error_description'] ?? $body['error'] );
+            return new \WP_Error( 'api_error', $body['error_description'] ?? $body['error'] );
         }
 
         $expires_in = intval( $body['expires_in'] ) - 300;
@@ -81,7 +82,7 @@ class GraphAPI {
         $response_body = json_decode( wp_remote_retrieve_body( $response ), true );
 
         if ( $response_code >= 400 ) {
-            return new WP_Error( 'graph_api_error', $response_body['error']['message'] ?? 'Graph API error' );
+            return new \WP_Error( 'graph_api_error', $response_body['error']['message'] ?? 'Graph API error' );
         }
 
         return $response_body;
@@ -95,7 +96,6 @@ class GraphAPI {
         $params = [
             'startDateTime' => $start_date,
             'endDateTime'   => $end_date,
-            // ITT BŐVÜLT: Hozzáadtuk a categories és sensitivity lekérését
             '$select'       => 'id,subject,start,end,bodyPreview,location,isAllDay,categories,sensitivity',
             '$top'          => 500
         ];
@@ -106,7 +106,6 @@ class GraphAPI {
         return ( ! is_wp_error( $result ) && isset( $result['value'] ) ) ? $result['value'] : $result;
     }
 
-    // ÚJ METÓDUS: A fiók kategóriáinak (és színeinek) lekérése
     public function get_master_categories( $email ) {
         return $this->request( 'GET', "/users/" . urlencode($email) . "/outlook/masterCategories" );
     }
