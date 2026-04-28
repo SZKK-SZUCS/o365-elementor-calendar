@@ -67,7 +67,7 @@ abstract class AbstractWidget extends Widget_Base {
 
         $this->add_control('api_status_indicator', [
             'type' => Controls_Manager::RAW_HTML,
-            'raw' => "<div style='padding:12px; background:#f0f0f1; border-left:4px solid {$status_color}; border-radius:3px; margin-bottom:15px; font-size:12px; line-height:1.5;'>
+            'raw' => "<div style='color:#222; padding:12px; background:#f0f0f1; border-left:4px solid {$status_color}; border-radius:3px; margin-bottom:15px; font-size:12px; line-height:1.5;'>
                         <strong>Graph API:</strong> <span style='color:{$status_color};'>{$status_text}</span><br>
                         <strong>Hitelesített fiókok:</strong> {$acc_count} db
                       </div>",

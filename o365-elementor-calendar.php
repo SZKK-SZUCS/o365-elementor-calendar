@@ -44,6 +44,27 @@ add_action( 'admin_notices', function() {
     }
 });
 
+// --- ÚJ: PLUGIN ACTION LINK & CACHE TÖRLÉS ---
+add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), function( $links ) {
+    $clear_link = '<a href="' . esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=o365_clear_cache' ), 'o365_clear_cache_nonce' ) ) . '" style="color:#d63638; font-weight:bold;">' . __( 'Gyorsítótár ürítése', 'o365-elementor-calendar' ) . '</a>';
+    array_push( $links, $clear_link );
+    return $links;
+});
+
+add_action( 'admin_post_o365_clear_cache', function() {
+    if ( ! current_user_can( 'manage_options' ) || ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( $_GET['_wpnonce'], 'o365_clear_cache_nonce' ) ) {
+        wp_die( 'Nincs jogosultságod ehhez a művelethez.' );
+    }
+    
+    global $wpdb;
+    // Törlünk minden transient-et, ami az O365-höz kapcsolódik (tokenek, auth kódok, események, kategória színek)
+    $wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '\_transient\_o365\_%' OR option_name LIKE '\_transient\_timeout\_o365\_%'" );
+    
+    wp_safe_redirect( wp_get_referer() ? wp_get_referer() : admin_url( 'plugins.php' ) );
+    exit;
+});
+// ---------------------------------------------
+
 // 4. Elementor Widgetek Regisztrálása
 add_action( 'elementor/widgets/register', function( $widgets_manager ) {
     if ( ! did_action( 'elementor/loaded' ) ) return;
@@ -84,16 +105,15 @@ add_action( 'elementor/editor/after_enqueue_scripts', function() {
     wp_enqueue_script(
         'o365-editor-script',
         plugins_url( 'assets/js/editor.js', __FILE__ ),
-        [ 'jquery', 'wp-api-fetch' ], // A wp-api-fetch beépítve kezeli a nonce-t!
+        [ 'jquery', 'wp-api-fetch' ],
         filemtime( plugin_dir_path( __FILE__ ) . 'assets/js/editor.js' ),
         true
     );
     
-    // Biztonsági (Nonce) kulcs átadása, ha az editor.js natív fetch-et használna
     wp_localize_script( 'o365-editor-script', 'o365_editor_globals', [
         'nonce' => wp_create_nonce( 'wp_rest' )
     ]);
 });
 
-// 7. REST API Handlerek Inicializálása (Minden esetben fusson le, ne csak adminban!)
+// 7. REST API Handlerek Inicializálása
 new \O365Calendar\API\AjaxHandlers();

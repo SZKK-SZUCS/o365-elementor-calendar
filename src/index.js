@@ -196,6 +196,7 @@ class O365CalendarWidget {
 
   getCurrentConfig() {
     const device = this.getDeviceType();
+    // Dinamikusan olvassuk ki a data-views-mobile / data-views-tablet / data-views-desktop értékeket
     const viewsRaw =
       this.container.dataset[
         `views${device.charAt(0).toUpperCase() + device.slice(1)}`
@@ -204,8 +205,10 @@ class O365CalendarWidget {
       this.container.dataset[
         `default${device.charAt(0).toUpperCase() + device.slice(1)}`
       ];
+
     let viewsArr = viewsRaw ? viewsRaw.split(",") : ["dayGridMonth"];
     if (!viewsArr.includes(defaultView)) defaultView = viewsArr[0];
+
     return { allowed: viewsArr, default: defaultView };
   }
 
@@ -283,6 +286,7 @@ class O365CalendarWidget {
       displayEventTime: this.displayEventTime,
       locales: allLocales,
       locale: this.locale.split("-")[0],
+      noEventsText: this.txtEmpty,
       timeZone: "local",
       height: "100%",
       expandRows: true,
@@ -330,15 +334,17 @@ class O365CalendarWidget {
     if (this.eventCache[cacheKey])
       return successCallback(this.filterEvents(this.eventCache[cacheKey]));
 
+    // A use_colors paramétert átadjuk az API-nak
     const url = `/wp-json/o365cal/v1/events?calendar_id=${encodeURIComponent(
       this.calendarId,
     )}&start=${encodeURIComponent(info.startStr)}&end=${encodeURIComponent(
       info.endStr,
     )}&privacy=${this.privacy}&mask_text=${encodeURIComponent(
       this.maskText,
-    )}&category_filter=${encodeURIComponent(
-      this.categoryFilter,
-    )}&use_colors=yes`;
+    )}&category_filter=${encodeURIComponent(this.categoryFilter)}&use_colors=${
+      this.useColors ? "yes" : "no"
+    }`;
+
     fetch(url)
       .then((res) => res.json())
       .then((data) => {
