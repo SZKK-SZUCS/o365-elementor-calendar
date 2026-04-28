@@ -3,7 +3,11 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import listPlugin from "@fullcalendar/list";
 import interactionPlugin from "@fullcalendar/interaction";
-import allLocales from "@fullcalendar/core/locales-all";
+
+import huLocale from "@fullcalendar/core/locales/hu";
+import deLocale from "@fullcalendar/core/locales/de";
+import zhCnLocale from "@fullcalendar/core/locales/zh-cn";
+
 import "./style.scss";
 
 // KÖZÖS HELPER: Fordítások (i18n belső szövegekhez)
@@ -280,12 +284,18 @@ class O365CalendarWidget {
 
   initCalendar() {
     const cfg = this.getCurrentConfig();
+    const currentLang = this.locale.split("-")[0];
+    const supportedLocales = ["de", "zh-cn", "en"];
+    const finalLocale = supportedLocales.includes(currentLang)
+      ? currentLang
+      : "hu";
     this.calendar = new Calendar(this.container, {
       plugins: [dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin],
       initialView: cfg.default,
       displayEventTime: this.displayEventTime,
-      locales: allLocales,
-      locale: this.locale.split("-")[0],
+      locales: [huLocale, deLocale, zhCnLocale],
+      locale: finalLocale,
+      firstDay: 1,
       noEventsText: this.txtEmpty,
       timeZone: "local",
       height: "100%",

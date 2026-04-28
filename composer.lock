@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "c147e0fe61b1cfd6c7840a0120ad184e",
+    "content-hash": "ebc1ce6cb27c3dcfcf958877ca0f4edc",
     "packages": [
         {
             "name": "yahnis-elsts/plugin-update-checker",
@@ -63,7 +63,9 @@
     "stability-flags": {},
     "prefer-stable": false,
     "prefer-lowest": false,
-    "platform": {},
+    "platform": {
+        "php": ">=8.0"
+    },
     "platform-dev": {},
     "plugin-api-version": "2.9.0"
 }
