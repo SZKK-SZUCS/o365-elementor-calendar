@@ -37,6 +37,18 @@ class AgendaWidget extends Widget_Base {
 
         // --- TARTALOM FÜL ---
         $this->start_controls_section('section_setup', ['label' => 'Adatforrás & Setup']);
+        $api = new \O365Calendar\GraphAPI();
+        $status_color = $api->is_configured() ? '#46b450' : '#dc3232';
+        $status_text = $api->is_configured() ? 'API Konfigurálva' : 'API Hiba / Hiányzó adatok';
+        $acc_count = count( get_option('o365_accounts', []) );
+        
+        $this->add_control('api_status_indicator', [
+            'type' => Controls_Manager::RAW_HTML,
+            'raw' => "<div style='padding:12px; background:#f0f0f1; border-left:4px solid {$status_color}; border-radius:3px; margin-bottom:15px; font-size:12px; line-height:1.5;'>
+                        <strong>Graph API:</strong> <span style='color:{$status_color};'>{$status_text}</span><br>
+                        <strong>Hitelesített fiókok:</strong> {$acc_count} db
+                      </div>",
+        ]);
         $this->add_control('auth_wizard_trigger', ['type' => Controls_Manager::RAW_HTML, 'raw' => '<button type="button" id="o365-trigger-wizard" class="elementor-button elementor-button-default" style="width:100%; background:#0073aa;"><i class="eicon-cog"></i> Setup Wizard</button>']);
         $this->add_control('calendar_id', ['label' => 'Naptárak', 'type' => Controls_Manager::SELECT2, 'options' => $calendar_options, 'multiple' => true, 'label_block' => true, 'separator' => 'before']);
         $this->add_control('event_limit', ['label' => 'Események száma', 'type' => Controls_Manager::NUMBER, 'default' => 5]);
@@ -104,6 +116,7 @@ class AgendaWidget extends Widget_Base {
 
     protected function render() {
         $settings = $this->get_settings_for_display();
+        $locale = str_replace('_', '-', get_locale());
         $cal_id = !empty($settings['calendar_id']) ? (is_array($settings['calendar_id']) ? implode(',', $settings['calendar_id']) : $settings['calendar_id']) : '';
         $cat_filter = !empty($settings['category_filter']) ? (is_array($settings['category_filter']) ? implode(',', $settings['category_filter']) : $settings['category_filter']) : '';
 
@@ -120,8 +133,9 @@ class AgendaWidget extends Widget_Base {
              data-enable-modal="<?php echo esc_attr($settings['enable_modal']); ?>"
              data-grouping="<?php echo esc_attr($settings['grouping_mode'] ?? 'none'); ?>"
              data-show-load-more="<?php echo esc_attr($settings['show_load_more'] ?? 'yes'); ?>"
-             data-load-more-text="<?php echo esc_attr($settings['load_more_text'] ?? 'További események betöltése'); ?>">
-            
+             data-load-more-text="<?php echo esc_attr($settings['load_more_text'] ?? 'További események betöltése'); ?>"
+             data-locale="<?php echo esc_attr($locale); ?>">
+
             <div class="o365-agenda-list-wrapper">
                 <div class="o365-agenda-loading"><div class="spinner"></div></div>
             </div>

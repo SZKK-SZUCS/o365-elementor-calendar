@@ -45,6 +45,18 @@ class ElementorWidget extends Widget_Base {
             'label' => __( 'Naptár Konfiguráció', 'o365-calendar' ),
             'tab'   => Controls_Manager::TAB_CONTENT,
         ]);
+        $api = new \O365Calendar\GraphAPI();
+        $status_color = $api->is_configured() ? '#46b450' : '#dc3232';
+        $status_text = $api->is_configured() ? 'API Konfigurálva' : 'API Hiba / Hiányzó adatok';
+        $acc_count = count( get_option('o365_accounts', []) );
+        
+        $this->add_control('api_status_indicator', [
+            'type' => Controls_Manager::RAW_HTML,
+            'raw' => "<div style='padding:12px; background:#f0f0f1; border-left:4px solid {$status_color}; border-radius:3px; margin-bottom:15px; font-size:12px; line-height:1.5;'>
+                        <strong>Graph API:</strong> <span style='color:{$status_color};'>{$status_text}</span><br>
+                        <strong>Hitelesített fiókok:</strong> {$acc_count} db
+                      </div>",
+        ]);
 
         $this->add_control('auth_wizard_trigger', [
             'type' => Controls_Manager::RAW_HTML,
@@ -204,6 +216,7 @@ class ElementorWidget extends Widget_Base {
 
     protected function render() {
         $settings = $this->get_settings_for_display();
+        $locale = str_replace('_', '-', get_locale());
         
         // Összegyűjtjük a kiválasztott kombinált ID-kat
         $cal_id = !empty($settings['calendar_id']) ? (is_array($settings['calendar_id']) ? implode(',', $settings['calendar_id']) : $settings['calendar_id']) : '';
@@ -231,7 +244,8 @@ class ElementorWidget extends Widget_Base {
              data-mask-text="<?php echo esc_attr($settings['privacy_mask_text'] ?? 'Foglalt'); ?>"
              data-category-filter="<?php echo esc_attr($cat_filter); ?>"
              data-use-colors="<?php echo esc_attr($settings['use_o365_colors'] ?? 'yes'); ?>"
-             data-display-event-time="<?php echo esc_attr($settings['display_event_time'] ?? 'yes'); ?>">
+             data-display-event-time="<?php echo esc_attr($settings['display_event_time'] ?? 'yes'); ?>"
+             data-locale="<?php echo esc_attr($locale); ?>">
         </div>
         <?php
     }
