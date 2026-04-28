@@ -179,6 +179,13 @@ class AjaxHandlers {
             }
         }
 
+        usort($all_events, function($a, $b) {
+            $time_a = strtotime($a['start']);
+            $time_b = strtotime($b['start']);
+            if ($time_a == $time_b) return 0;
+            return ($time_a < $time_b) ? -1 : 1;
+        });
+
         set_transient( $cache_key, $all_events, 15 * MINUTE_IN_SECONDS );
         return new \WP_REST_Response( $all_events, 200 );
     }

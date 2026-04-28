@@ -438,6 +438,21 @@ $tahoma: "Tahoma", "Geneva", sans-serif;
     border-radius: inherit;
     overflow: hidden;
   }
+  .agenda-group-header {
+    background: rgba($brand-cyan, 0.08);
+    color: $brand-deep;
+    padding: 10px 20px;
+    font-size: 13px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid rgba($brand-cyan, 0.15);
+    border-top: 1px solid rgba(0, 0, 0, 0.03);
+
+    &:first-child {
+      border-top: none;
+    }
+  }
 
   .o365-agenda-item {
     display: flex;
@@ -534,6 +549,14 @@ $tahoma: "Tahoma", "Geneva", sans-serif;
   }
   .o365-agenda-item {
     border-bottom-color: rgba(255, 255, 255, 0.1);
+  }
+
+  // Sötét fejléc stílus
+  .agenda-group-header {
+    background: rgba(255, 255, 255, 0.05);
+    color: $brand-cyan;
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+    border-top-color: transparent;
   }
 }
 

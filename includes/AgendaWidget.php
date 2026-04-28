@@ -44,6 +44,7 @@ class AgendaWidget extends Widget_Base {
         $this->end_controls_section();
 
         $this->start_controls_section('section_display', ['label' => 'Elemek láthatósága']);
+        $this->add_control('grouping_mode', ['label' => 'Csoportosítás', 'type' => Controls_Manager::SELECT, 'default' => 'none', 'options' => [ 'none' => 'Nincs (Ömlesztett lista)', 'month' => 'Hónapok szerint', 'day' => 'Napok szerint',]]);
         $this->add_control('show_date', ['label' => 'Dátum mutatása', 'type' => Controls_Manager::SWITCHER, 'default' => 'yes']);
         $this->add_control('show_time', ['label' => 'Időpont mutatása', 'type' => Controls_Manager::SWITCHER, 'default' => 'yes']);
         $this->add_control('show_location', ['label' => 'Helyszín mutatása', 'type' => Controls_Manager::SWITCHER, 'default' => 'yes']);
@@ -91,7 +92,8 @@ class AgendaWidget extends Widget_Base {
              data-show-loc="<?php echo esc_attr($settings['show_location']); ?>"
              data-show-desc="<?php echo esc_attr($settings['show_desc']); ?>"
              data-show-export="<?php echo esc_attr($settings['show_export']); ?>"
-             data-enable-modal="<?php echo esc_attr($settings['enable_modal']); ?>">
+             data-enable-modal="<?php echo esc_attr($settings['enable_modal']); ?>"
+             data-grouping="<?php echo esc_attr($settings['grouping_mode'] ?? 'none'); ?>">
             <div class="o365-agenda-loading"><div class="spinner"></div></div>
         </div>
         <?php

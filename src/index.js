@@ -464,6 +464,7 @@ class O365AgendaWidget {
       desc: this.container.dataset.showDesc === "yes",
       export: this.container.dataset.showExport === "yes",
       modal: this.container.dataset.enableModal === "yes",
+      grouping: this.container.dataset.grouping || "none",
     };
 
     this.initModal();
@@ -539,6 +540,8 @@ class O365AgendaWidget {
     }
 
     let html = '<div class="o365-agenda-list">';
+    let currentGroup = "";
+
     events.forEach((event, idx) => {
       const startDate = new Date(event.start);
       const dateStr = startDate.toLocaleDateString("hu-HU", {
@@ -550,6 +553,33 @@ class O365AgendaWidget {
         minute: "2-digit",
       });
 
+      // Csoportosítás (Fejlécek beszúrása)
+      if (this.config.grouping !== "none") {
+        let groupKey = "";
+        let groupLabel = "";
+
+        if (this.config.grouping === "month") {
+          groupKey = `${startDate.getFullYear()}-${startDate.getMonth()}`;
+          groupLabel = startDate.toLocaleDateString("hu-HU", {
+            year: "numeric",
+            month: "long",
+          });
+        } else if (this.config.grouping === "day") {
+          groupKey = startDate.toLocaleDateString("hu-HU");
+          groupLabel = startDate.toLocaleDateString("hu-HU", {
+            month: "long",
+            day: "numeric",
+            weekday: "long",
+          });
+        }
+
+        if (groupKey !== currentGroup) {
+          html += `<div class="agenda-group-header">${groupLabel}</div>`;
+          currentGroup = groupKey;
+        }
+      }
+
+      // Esemény kártya
       html += `
         <div class="o365-agenda-item ${
           this.config.modal ? "is-clickable" : ""
@@ -570,7 +600,10 @@ class O365AgendaWidget {
             <div class="agenda-title">${event.title}</div>
             ${
               this.config.loc && event.extendedProps.location
-                ? `<div class="agenda-loc">📍 ${event.extendedProps.location}</div>`
+                ? `<div class="agenda-loc">
+              <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" style="vertical-align: text-bottom; margin-right: 4px;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+              ${event.extendedProps.location}
+            </div>`
                 : ""
             }
             ${
@@ -596,7 +629,7 @@ class O365AgendaWidget {
     html += "</div>";
     this.container.innerHTML = html;
 
-    // Eseménykezelők
+    // Eseménykezelők bekötése
     this.container.querySelectorAll(".o365-agenda-item").forEach((item) => {
       item.onclick = (e) => {
         if (e.target.closest(".o365-agenda-export")) return;
