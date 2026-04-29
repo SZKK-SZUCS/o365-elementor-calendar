@@ -2,7 +2,7 @@
 /**
  * Plugin Name: O365 Elementor Calendar
  * Description: Enterprise Microsoft 365 Calendar integration for Elementor. Displays FullCalendar, Agenda and Single Event widgets.
- * Version: 1.0.5
+ * Version: 1.0.6
  * Author: MFÜI - Szurofka Márton
  * Author URI: https://uni.sze.hu
  * Text Domain: o365-elementor-calendar
@@ -287,18 +287,12 @@ add_action( 'elementor/editor/after_enqueue_scripts', function() {
 new \O365Calendar\API\AjaxHandlers();
 
 // --- Automatikus Frissítés (PUC) Integráció ---
-use YahnisElsts\PluginUpdateChecker\v5\PucFactory;
-
-if ( class_exists( 'YahnisElsts\PluginUpdateChecker\v5\PucFactory' ) ) {
-    $o365_update_checker = PucFactory::buildUpdateChecker( 
-        'https://github.com/SZKK-SZUCS/o365-elementor-calendar', // Perjel eltávolítva a végéről
+if ( class_exists( '\YahnisElsts\PluginUpdateChecker\v5\PucFactory' ) ) {
+    $o365_update_checker = \YahnisElsts\PluginUpdateChecker\v5\PucFactory::buildUpdateChecker( 
+        'https://github.com/SZKK-SZUCS/o365-elementor-calendar',
         __FILE__, 
         'o365-elementor-calendar' 
     );
-    
-    // Opcionális, de a biztonság kedvéért kényszerítjük a master ágat:
     $o365_update_checker->setBranch('master');
-    
-    // Kényszerítjük, hogy KIZÁRÓLAG az o365-elementor-calendar.zip fájlt töltse le a nyers forráskód helyett!
-    $o365_update_checker->getVcsApi()->enableReleaseAssets('/o365-elementor-calendar\.zip$/i');
+    $o365_update_checker->getVcsApi()->enableReleaseAssets('/\.zip$/i');
 }
