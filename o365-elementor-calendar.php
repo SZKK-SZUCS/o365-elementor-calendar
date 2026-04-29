@@ -2,7 +2,7 @@
 /**
  * Plugin Name: O365 Elementor Calendar
  * Description: Enterprise Microsoft 365 Calendar integration for Elementor. Displays FullCalendar, Agenda and Single Event widgets.
- * Version: 1.0.4
+ * Version: 1.0.5
  * Author: MFÜI - Szurofka Márton
  * Author URI: https://uni.sze.hu
  * Text Domain: o365-elementor-calendar
@@ -296,8 +296,8 @@ if ( class_exists( 'YahnisElsts\PluginUpdateChecker\v5\PucFactory' ) ) {
         'o365-elementor-calendar' 
     );
     
-    // Opcionális, de a biztonság kedvéért kényszerítjük a main ágat:
-    $o365_update_checker->setBranch('main');
+    // Opcionális, de a biztonság kedvéért kényszerítjük a master ágat:
+    $o365_update_checker->setBranch('master');
     
     // Kényszerítjük, hogy KIZÁRÓLAG az o365-elementor-calendar.zip fájlt töltse le a nyers forráskód helyett!
     $o365_update_checker->getVcsApi()->enableReleaseAssets('/o365-elementor-calendar\.zip$/i');
