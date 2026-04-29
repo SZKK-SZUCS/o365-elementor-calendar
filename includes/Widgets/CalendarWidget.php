@@ -18,8 +18,6 @@ class CalendarWidget extends AbstractWidget {
 
     protected function register_controls() {
         
-        // --- 1. TARTALOM (CONTENT) FÜL ---
-        
         $this->register_api_and_account_controls( __( 'Naptár Forrás & Setup', 'o365-elementor-calendar' ) );
 
         $this->start_controls_section('section_config', ['label' => __( 'Naptár Beállítások', 'o365-elementor-calendar' )]);
@@ -34,14 +32,15 @@ class CalendarWidget extends AbstractWidget {
             'label'   => __( 'Napi kezdés', 'o365-elementor-calendar' ),
             'type'    => Controls_Manager::SELECT,
             'default' => '00:00:00',
-            'options' => $hours
+            'options' => $hours,
+            'description' => 'A heti/napi nézetnél eddig az óráig lehet visszagörgetni.',
         ]);
 
         $this->add_control('slot_max_time', [
             'label'   => __( 'Napi befejezés', 'o365-elementor-calendar' ),
             'type'    => Controls_Manager::SELECT,
             'default' => '24:00:00',
-            'options' => $hours
+            'options' => $hours,
         ]);
 
         $this->add_control('display_event_time', [
@@ -51,10 +50,10 @@ class CalendarWidget extends AbstractWidget {
         ]);
 
         $this->add_control('use_o365_colors', [
-            'label'     => __( 'O365 kategória színek használata', 'o365-elementor-calendar' ),
-            'type'      => Controls_Manager::SWITCHER,
-            'default'   => 'yes',
-            'description' => 'Ha kikapcsolod, az összes esemény a Stílus fülön megadott színt kapja.'
+            'label'       => __( 'O365 kategória színek használata', 'o365-elementor-calendar' ),
+            'type'        => Controls_Manager::SWITCHER,
+            'default'     => 'yes',
+            'description' => 'Ha be van kapcsolva, az Outlookban megadott egyedi kategóriaszíneket alkalmazza az eseményekre. Ha kikapcsolod, az itt a Stílus fülön beállított alapértelmezett színt kapja mind.',
         ]);
 
         $this->add_control('privacy_mode', [
@@ -63,13 +62,13 @@ class CalendarWidget extends AbstractWidget {
             'default' => 'mask',
             'options' => [
                 'show' => 'Minden adat látszik',
-                'mask' => 'Maszkolás',
+                'mask' => 'Maszkolás (csak Foglaltként jelenik meg)',
                 'hide' => 'Teljes elrejtés'
-            ]
+            ],
+            'description' => 'Az Outlookban privátként megjelölt események kezelése a weboldalon.',
         ]);
         $this->end_controls_section();
 
-        // Szövegek és Címkék
         $this->start_controls_section('section_texts', ['label' => __( 'Szövegek és Címkék', 'o365-elementor-calendar' )]);
         
         $this->add_control('empty_state_text', [
@@ -90,7 +89,6 @@ class CalendarWidget extends AbstractWidget {
         ]);
         $this->end_controls_section();
 
-        // Reszponzív Nézetek (Visszatéve!)
         $this->start_controls_section('section_views', ['label' => __( 'Nézetek (Reszponzív)', 'o365-elementor-calendar' )]);
         $view_opts = [
             'dayGridMonth' => 'Havi Naptár', 
@@ -99,7 +97,6 @@ class CalendarWidget extends AbstractWidget {
             'listMonth'    => 'Havi Lista'
         ];
 
-        // Desktop
         $this->add_control('heading_desktop', ['type' => Controls_Manager::HEADING, 'label' => 'Asztali Nézet']);
         $this->add_control('views_desktop', [
             'label'    => 'Engedélyezett', 
@@ -115,7 +112,6 @@ class CalendarWidget extends AbstractWidget {
             'default' => 'dayGridMonth'
         ]);
 
-        // Tablet
         $this->add_control('heading_tablet', ['type' => Controls_Manager::HEADING, 'label' => 'Tablet Nézet', 'separator' => 'before']);
         $this->add_control('views_tablet', [
             'label'    => 'Engedélyezett', 
@@ -131,7 +127,6 @@ class CalendarWidget extends AbstractWidget {
             'default' => 'timeGridWeek'
         ]);
 
-        // Mobile
         $this->add_control('heading_mobile', ['type' => Controls_Manager::HEADING, 'label' => 'Mobil Nézet', 'separator' => 'before']);
         $this->add_control('views_mobile', [
             'label'    => 'Engedélyezett', 
@@ -149,16 +144,14 @@ class CalendarWidget extends AbstractWidget {
         
         $this->end_controls_section();
 
-        // --- 2. STÍLUS (STYLE) FÜL ---
-
-        // 2.1 Alapok & Rács
+        // --- STÍLUS (STYLE) FÜL ---
         $this->start_controls_section('style_general', ['label' => __( 'Naptár Alapok & Rács', 'o365-elementor-calendar' ), 'tab' => Controls_Manager::TAB_STYLE]);
         
         $this->add_responsive_control('calendar_height', [
             'label'      => 'Magasság', 
             'type'       => Controls_Manager::SLIDER, 
             'size_units' => [ 'px', 'vh' ], 
-            'range'      => [ 'px' => [ 'min' => 200, 'max' => 1500 ] ], // JAVÍTVA: Megnövelt range
+            'range'      => [ 'px' => [ 'min' => 200, 'max' => 1500 ] ],
             'default'    => [ 'unit' => 'px', 'size' => 650 ], 
             'selectors'  => [ '{{WRAPPER}}' => '--o365-cal-height: {{SIZE}}{{UNIT}};' ]
         ]);
@@ -170,14 +163,24 @@ class CalendarWidget extends AbstractWidget {
         $this->add_control('today_bg_color', ['label' => 'Mai nap háttere', 'type' => Controls_Manager::COLOR, 'selectors' => [ '{{WRAPPER}} .fc-day-today' => 'background-color: {{VALUE}} !important;' ]]);
         $this->end_controls_section();
 
-        // 2.2 Fejléc & Gombok (Toolbar)
         $this->start_controls_section('style_toolbar', ['label' => __( 'Fejléc (Toolbar) & Gombok', 'o365-elementor-calendar' ), 'tab' => Controls_Manager::TAB_STYLE]);
         $this->add_group_control(Group_Control_Typography::get_type(), ['name' => 'toolbar_title_typo', 'label' => 'Hónap Cím', 'selector' => '{{WRAPPER}} .fc-toolbar-title']);
         $this->add_control('toolbar_title_color', ['label' => 'Cím színe', 'type' => Controls_Manager::COLOR, 'selectors' => [ '{{WRAPPER}} .fc-toolbar-title' => 'color: {{VALUE}} !important;' ]]);
         
         $this->add_control('toolbar_btn_heading', ['label' => 'Gombok (Ma, Nézetek, Léptetés)', 'type' => Controls_Manager::HEADING, 'separator' => 'before']);
         $this->add_group_control(Group_Control_Typography::get_type(), ['name' => 'toolbar_btn_typo', 'selector' => '{{WRAPPER}} .fc-button-primary']);
-        $this->add_control('toolbar_btn_radius', ['label' => 'Gomb Lekerekítés', 'type' => Controls_Manager::SLIDER, 'selectors' => [ '{{WRAPPER}} .fc-button-primary' => 'border-radius: {{SIZE}}{{UNIT}} !important;' ]]);
+        
+        $this->add_responsive_control('toolbar_btn_radius', [
+            'label' => 'Gomb Lekerekítés', 
+            'type' => Controls_Manager::SLIDER, 
+            'size_units' => ['px', 'em', '%'],
+            'range' => [
+                'px' => [ 'min' => 0, 'max' => 50 ],
+                'em' => [ 'min' => 0, 'max' => 5 ],
+                '%'  => [ 'min' => 0, 'max' => 50 ],
+            ],
+            'selectors' => [ '{{WRAPPER}} .fc-button-primary' => 'border-radius: {{SIZE}}{{UNIT}} !important;' ]
+        ]);
         
         $this->start_controls_tabs('tabs_toolbar_buttons');
         $this->start_controls_tab('tab_tb_normal', ['label' => 'Normál']);
@@ -191,32 +194,38 @@ class CalendarWidget extends AbstractWidget {
         $this->end_controls_tabs();
         $this->end_controls_section();
 
-        // 2.3 Események
         $this->start_controls_section('style_events', ['label' => __( 'Események (Kártyák)', 'o365-elementor-calendar' ), 'tab' => Controls_Manager::TAB_STYLE]);
         $this->add_group_control(Group_Control_Typography::get_type(), ['name' => 'event_typography', 'selector' => '{{WRAPPER}} .fc-event-title, {{WRAPPER}} .fc-event-time']);
-        $this->add_control('event_border_radius', ['label' => 'Lekerekítés', 'type' => Controls_Manager::SLIDER, 'selectors' => [ '{{WRAPPER}} .fc-event' => 'border-radius: {{SIZE}}{{UNIT}} !important;' ]]);
+        
+        $this->add_responsive_control('event_border_radius', [
+            'label' => 'Lekerekítés', 
+            'type' => Controls_Manager::SLIDER, 
+            'size_units' => ['px', 'em', '%'],
+            'range' => [
+                'px' => [ 'min' => 0, 'max' => 50 ],
+                'em' => [ 'min' => 0, 'max' => 5 ],
+                '%'  => [ 'min' => 0, 'max' => 50 ],
+            ],
+            'selectors' => [ '{{WRAPPER}} .fc-event' => 'border-radius: {{SIZE}}{{UNIT}} !important;' ]
+        ]);
         
         $this->start_controls_tabs('tabs_events');
         $this->start_controls_tab('tab_ev_normal', ['label' => 'Normál']);
-        $this->add_control('event_bg_color', ['label' => 'Alap Háttérszín', 'type' => Controls_Manager::COLOR, 'selectors' => [ '{{WRAPPER}} .fc-event' => 'background-color: {{VALUE}} !important; border-color: {{VALUE}} !important;' ]]);
+        $this->add_control('event_bg_color', ['label' => 'Alap Háttérszín', 'type' => Controls_Manager::COLOR, 'selectors' => [ '{{WRAPPER}} .fc-event' => 'background-color: {{VALUE}}; border-color: {{VALUE}};' ]]);
         $this->add_control('event_text_color', ['label' => 'Szöveg színe', 'type' => Controls_Manager::COLOR, 'selectors' => [ '{{WRAPPER}} .fc-event-title, {{WRAPPER}} .fc-event-time' => 'color: {{VALUE}} !important;' ]]);
         $this->end_controls_tab();
         $this->start_controls_tab('tab_ev_hover', ['label' => 'Hover']);
-        $this->add_control('event_hover_transform', ['label' => 'Emelkedés', 'type' => Controls_Manager::SLIDER, 'range' => ['px' => ['min' => -10, 'max' => 0]], 'selectors' => [ '{{WRAPPER}} .fc-event:hover' => 'transform: translateY({{SIZE}}{{UNIT}});' ]]);
+        $this->add_responsive_control('event_hover_transform', ['label' => 'Emelkedés', 'type' => Controls_Manager::SLIDER, 'range' => ['px' => ['min' => -10, 'max' => 0]], 'selectors' => [ '{{WRAPPER}} .fc-event:hover' => 'transform: translateY({{SIZE}}{{UNIT}});' ]]);
         $this->add_group_control(Group_Control_Box_Shadow::get_type(), ['name' => 'event_hover_shadow', 'selector' => '{{WRAPPER}} .fc-event:hover']);
         $this->end_controls_tab();
         $this->end_controls_tabs();
         $this->end_controls_section();
 
-        // 2.4 Hover Tooltip
         $this->start_controls_section('style_tooltip', ['label' => __( 'Hover Tooltip', 'o365-elementor-calendar' ), 'tab' => Controls_Manager::TAB_STYLE]);
         $this->add_control('tooltip_bg', ['label' => 'Háttérszín', 'type' => Controls_Manager::COLOR, 'selectors' => [ '.o365-calendar-tooltip' => 'background-color: {{VALUE}};' ]]);
         $this->add_control('tooltip_text_color', ['label' => 'Szöveg színe', 'type' => Controls_Manager::COLOR, 'selectors' => [ '.o365-calendar-tooltip' => 'color: {{VALUE}};' ]]);
         $this->add_control('tooltip_border_color', ['label' => 'Kiemelő csík színe', 'type' => Controls_Manager::COLOR, 'selectors' => [ '.o365-calendar-tooltip' => 'border-left-color: {{VALUE}};' ]]);
         $this->end_controls_section();
-
-        // 2.5 Popup Modal & Gombok (Kihagyva az ismétlés miatt, az AbstractWidget-ben vagy korábbi kódodban benne van)
-        // ... (Modal stílusok ugyanazok, mint korábban)
 
         $this->register_empty_state_style_controls();
     }

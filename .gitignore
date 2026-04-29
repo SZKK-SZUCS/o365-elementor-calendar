@@ -3,4 +3,3 @@ vendor/
 assets/build/
 .env
 .DS_Store
-wp-config.php.txt

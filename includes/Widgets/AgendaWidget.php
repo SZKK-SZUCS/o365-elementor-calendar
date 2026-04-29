@@ -18,13 +18,15 @@ class AgendaWidget extends AbstractWidget {
 
     protected function register_controls() {
         
-        // --- 1. TARTALOM (CONTENT) FÜL ---
-        
-        // Setup & Adatforrás (Az AbstractWidget-ből)
         $this->register_api_and_account_controls( __( 'Adatforrás & Setup', 'o365-elementor-calendar' ) );
 
         $this->start_controls_section('section_config', ['label' => __( 'Agenda Beállítások', 'o365-elementor-calendar' )]);
-        $this->add_control('event_limit', ['label' => __( 'Alapértelmezett elemszám', 'o365-elementor-calendar' ), 'type' => Controls_Manager::NUMBER, 'default' => 5]);
+        $this->add_control('event_limit', [
+            'label' => __( 'Alapértelmezett elemszám', 'o365-elementor-calendar' ), 
+            'type' => Controls_Manager::NUMBER, 
+            'default' => 5,
+            'description' => 'A kezdetben betöltött események száma. Ha van \'Több betöltése\' gomb, ennyivel növekszik a lista.'
+        ]);
         $this->add_control('grouping_mode', [
             'label'   => __( 'Csoportosítás', 'o365-elementor-calendar' ),
             'type'    => Controls_Manager::SELECT,
@@ -34,6 +36,7 @@ class AgendaWidget extends AbstractWidget {
                 'month' => __( 'Hónapok szerint', 'o365-elementor-calendar' ),
                 'day'   => __( 'Napok szerint', 'o365-elementor-calendar' ),
             ],
+            'description' => 'Vizuális szekciók és elválasztók beillesztése a listába a könnyebb átláthatóságért.',
         ]);
         $this->end_controls_section();
 
@@ -54,47 +57,57 @@ class AgendaWidget extends AbstractWidget {
         $this->add_control('modal_join_text', ['label' => 'Online Meeting szöveg', 'type' => Controls_Manager::TEXT, 'default' => 'Csatlakozás']);
         $this->end_controls_section();
 
-        // --- 2. STÍLUS (STYLE) FÜL ---
-
-        // 2.1 Lista Konténer
         $this->start_controls_section('style_general', ['label' => __( 'Lista Alapok', 'o365-elementor-calendar' ), 'tab' => Controls_Manager::TAB_STYLE]);
         $this->add_responsive_control('list_max_height', ['label' => 'Lista max magassága (Görgetéshez)', 'type' => Controls_Manager::SLIDER, 'size_units' => [ 'px', 'vh' ], 'range' => ['px' => ['min' => 200, 'max' => 1000]], 'selectors' => ['{{WRAPPER}} .o365-agenda-list-wrapper' => 'max-height: {{SIZE}}{{UNIT}};']]);
         $this->add_group_control(Group_Control_Background::get_type(), ['name' => 'list_bg', 'selector' => '{{WRAPPER}} .o365-agenda-list']);
         $this->add_group_control(Group_Control_Border::get_type(), ['name' => 'list_border', 'selector' => '{{WRAPPER}} .o365-agenda-list']);
-        $this->add_control('list_border_radius', ['label' => 'Lekerekítés', 'type' => Controls_Manager::SLIDER, 'selectors' => ['{{WRAPPER}} .o365-agenda-list' => 'border-radius: {{SIZE}}{{UNIT}};']]);
+        
+        $this->add_responsive_control('list_border_radius', [
+            'label' => 'Lekerekítés', 
+            'type' => Controls_Manager::SLIDER, 
+            'size_units' => ['px', 'em', '%'],
+            'range' => [
+                'px' => [ 'min' => 0, 'max' => 50 ],
+                'em' => [ 'min' => 0, 'max' => 5 ],
+                '%'  => [ 'min' => 0, 'max' => 50 ],
+            ],
+            'selectors' => ['{{WRAPPER}} .o365-agenda-list' => 'border-radius: {{SIZE}}{{UNIT}};']
+        ]);
+        
         $this->add_group_control(Group_Control_Box_Shadow::get_type(), ['name' => 'list_shadow', 'selector' => '{{WRAPPER}} .o365-agenda-list']);
         $this->end_controls_section();
 
-        // 2.2 Csoportosítás Fejléce
         $this->start_controls_section('style_group_header', ['label' => __( 'Csoport Fejléc', 'o365-elementor-calendar' ), 'tab' => Controls_Manager::TAB_STYLE, 'condition' => ['grouping_mode!' => 'none']]);
         $this->add_group_control(Group_Control_Typography::get_type(), ['name' => 'gh_typo', 'selector' => '{{WRAPPER}} .agenda-group-header']);
         $this->add_control('gh_color', ['label' => 'Szöveg színe', 'type' => Controls_Manager::COLOR, 'selectors' => ['{{WRAPPER}} .agenda-group-header' => 'color: {{VALUE}};']]);
         $this->add_control('gh_bg', ['label' => 'Háttérszín', 'type' => Controls_Manager::COLOR, 'selectors' => ['{{WRAPPER}} .agenda-group-header' => 'background-color: {{VALUE}};']]);
         $this->add_control('gh_border_color', ['label' => 'Alsó/Felső vonal színe', 'type' => Controls_Manager::COLOR, 'selectors' => ['{{WRAPPER}} .agenda-group-header' => 'border-color: {{VALUE}};']]);
-        $this->add_responsive_control('gh_padding', ['label' => 'Belső margó (Padding)', 'type' => Controls_Manager::DIMENSIONS, 'selectors' => ['{{WRAPPER}} .agenda-group-header' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};']]);
+        $this->add_responsive_control('gh_padding', ['label' => 'Belső margó (Padding)', 'type' => Controls_Manager::DIMENSIONS, 'size_units' => ['px', 'em', '%'], 'selectors' => ['{{WRAPPER}} .agenda-group-header' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};']]);
         $this->end_controls_section();
 
-        // 2.3 Lista Elemek (Kártyák/Sorok)
         $this->start_controls_section('style_item', ['label' => __( 'Lista Elemek (Sorok)', 'o365-elementor-calendar' ), 'tab' => Controls_Manager::TAB_STYLE]);
-        $this->add_responsive_control('item_padding', ['label' => 'Belső margó (Padding)', 'type' => Controls_Manager::DIMENSIONS, 'selectors' => ['{{WRAPPER}} .o365-agenda-item' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};']]);
+        $this->add_responsive_control('item_padding', ['label' => 'Belső margó (Padding)', 'type' => Controls_Manager::DIMENSIONS, 'size_units' => ['px', 'em', '%'], 'selectors' => ['{{WRAPPER}} .o365-agenda-item' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};']]);
         $this->add_control('item_border_color', ['label' => 'Elválasztó vonal színe', 'type' => Controls_Manager::COLOR, 'selectors' => ['{{WRAPPER}} .o365-agenda-item' => 'border-bottom-color: {{VALUE}};']]);
         $this->start_controls_tabs('tabs_items');
-        // Normál
         $this->start_controls_tab('tab_item_normal', ['label' => 'Normál']);
         $this->add_control('item_bg', ['label' => 'Háttérszín', 'type' => Controls_Manager::COLOR, 'selectors' => ['{{WRAPPER}} .o365-agenda-item' => 'background-color: {{VALUE}};']]);
         $this->end_controls_tab();
-        // Hover
         $this->start_controls_tab('tab_item_hover', ['label' => 'Hover']);
         $this->add_control('item_hover_bg', ['label' => 'Háttérszín', 'type' => Controls_Manager::COLOR, 'selectors' => ['{{WRAPPER}} .o365-agenda-item:hover' => 'background-color: {{VALUE}};']]);
-        $this->add_control('item_hover_transform', ['label' => 'Emelkedés (Y tengely)', 'type' => Controls_Manager::SLIDER, 'range' => ['px' => ['min' => -10, 'max' => 0]], 'selectors' => ['{{WRAPPER}} .o365-agenda-item:hover' => 'transform: translateY({{SIZE}}{{UNIT}});']]);
+        $this->add_responsive_control('item_hover_transform', ['label' => 'Emelkedés (Y tengely)', 'type' => Controls_Manager::SLIDER, 'range' => ['px' => ['min' => -10, 'max' => 0]], 'selectors' => ['{{WRAPPER}} .o365-agenda-item:hover' => 'transform: translateY({{SIZE}}{{UNIT}});']]);
         $this->add_group_control(Group_Control_Box_Shadow::get_type(), ['name' => 'item_hover_shadow', 'selector' => '{{WRAPPER}} .o365-agenda-item:hover']);
         $this->end_controls_tab();
         $this->end_controls_tabs();
         $this->end_controls_section();
 
-        // 2.4 Dátum és Időpont (Bal oldali Meta)
         $this->start_controls_section('style_meta', ['label' => __( 'Dátum és Időpont', 'o365-elementor-calendar' ), 'tab' => Controls_Manager::TAB_STYLE]);
-        $this->add_responsive_control('meta_width', ['label' => 'Dátum oszlop szélessége', 'type' => Controls_Manager::SLIDER, 'range' => ['px' => ['min' => 40, 'max' => 150]], 'selectors' => ['{{WRAPPER}} .agenda-meta' => 'min-width: {{SIZE}}{{UNIT}};']]);
+        $this->add_responsive_control('meta_width', [
+            'label' => 'Dátum oszlop szélessége', 
+            'type' => Controls_Manager::SLIDER, 
+            'size_units' => ['px', '%', 'em'],
+            'range' => ['px' => ['min' => 40, 'max' => 250]], 
+            'selectors' => ['{{WRAPPER}} .agenda-meta' => 'min-width: {{SIZE}}{{UNIT}};']
+        ]);
         $this->add_control('meta_date_heading', ['label' => 'Dátum', 'type' => Controls_Manager::HEADING, 'separator' => 'before']);
         $this->add_group_control(Group_Control_Typography::get_type(), ['name' => 'date_typo', 'selector' => '{{WRAPPER}} .agenda-date']);
         $this->add_control('date_color', ['label' => 'Dátum színe', 'type' => Controls_Manager::COLOR, 'selectors' => ['{{WRAPPER}} .agenda-date' => 'color: {{VALUE}};']]);
@@ -103,7 +116,6 @@ class AgendaWidget extends AbstractWidget {
         $this->add_control('time_color', ['label' => 'Időpont színe', 'type' => Controls_Manager::COLOR, 'selectors' => ['{{WRAPPER}} .agenda-time' => 'color: {{VALUE}};']]);
         $this->end_controls_section();
 
-        // 2.5 Tartalom (Cím, Hely, Leírás)
         $this->start_controls_section('style_content', ['label' => __( 'Tartalom (Cím, Hely, Leírás)', 'o365-elementor-calendar' ), 'tab' => Controls_Manager::TAB_STYLE]);
         $this->add_control('content_title_heading', ['label' => 'Cím', 'type' => Controls_Manager::HEADING]);
         $this->add_group_control(Group_Control_Typography::get_type(), ['name' => 'title_typo', 'selector' => '{{WRAPPER}} .agenda-title']);
@@ -119,16 +131,23 @@ class AgendaWidget extends AbstractWidget {
         $this->add_control('desc_color', ['label' => 'Szöveg színe', 'type' => Controls_Manager::COLOR, 'selectors' => ['{{WRAPPER}} .agenda-desc' => 'color: {{VALUE}};']]);
         $this->end_controls_section();
 
-        // 2.6 Soron belüli Gombok (Mentés / Meeting)
         $this->start_controls_section('style_inline_buttons', ['label' => __( 'Soron belüli Gombok', 'o365-elementor-calendar' ), 'tab' => Controls_Manager::TAB_STYLE]);
-        $this->add_control('btn_radius', ['label' => 'Lekerekítés', 'type' => Controls_Manager::SLIDER, 'selectors' => ['{{WRAPPER}} .o365-agenda-export, {{WRAPPER}} .o365-agenda-meeting-btn' => 'border-radius: {{SIZE}}{{UNIT}};']]);
+        $this->add_responsive_control('btn_radius', [
+            'label' => 'Lekerekítés', 
+            'type' => Controls_Manager::SLIDER, 
+            'size_units' => ['px', 'em', '%'],
+            'range' => [
+                'px' => [ 'min' => 0, 'max' => 50 ],
+                'em' => [ 'min' => 0, 'max' => 5 ],
+                '%'  => [ 'min' => 0, 'max' => 50 ],
+            ],
+            'selectors' => ['{{WRAPPER}} .o365-agenda-export, {{WRAPPER}} .o365-agenda-meeting-btn' => 'border-radius: {{SIZE}}{{UNIT}};']
+        ]);
         $this->start_controls_tabs('tabs_inline_btns');
-        // Normál
         $this->start_controls_tab('tab_inbtn_normal', ['label' => 'Normál']);
         $this->add_control('btn_color', ['label' => 'Ikon/Szöveg színe', 'type' => Controls_Manager::COLOR, 'selectors' => ['{{WRAPPER}} .o365-agenda-export, {{WRAPPER}} .o365-agenda-meeting-btn' => 'color: {{VALUE}}; border-color: {{VALUE}};']]);
         $this->add_control('btn_bg', ['label' => 'Háttérszín', 'type' => Controls_Manager::COLOR, 'selectors' => ['{{WRAPPER}} .o365-agenda-export, {{WRAPPER}} .o365-agenda-meeting-btn' => 'background-color: {{VALUE}};']]);
         $this->end_controls_tab();
-        // Hover
         $this->start_controls_tab('tab_inbtn_hover', ['label' => 'Hover']);
         $this->add_control('btn_h_color', ['label' => 'Ikon/Szöveg színe', 'type' => Controls_Manager::COLOR, 'selectors' => ['{{WRAPPER}} .o365-agenda-export:hover, {{WRAPPER}} .o365-agenda-meeting-btn:hover' => 'color: {{VALUE}}; border-color: {{VALUE}};']]);
         $this->add_control('btn_h_bg', ['label' => 'Háttérszín', 'type' => Controls_Manager::COLOR, 'selectors' => ['{{WRAPPER}} .o365-agenda-export:hover, {{WRAPPER}} .o365-agenda-meeting-btn:hover' => 'background-color: {{VALUE}};']]);
@@ -136,12 +155,23 @@ class AgendaWidget extends AbstractWidget {
         $this->end_controls_tabs();
         $this->end_controls_section();
 
-        // 2.7 "Több betöltése" Gomb
         $this->start_controls_section('style_load_more', ['label' => __( 'Több betöltése gomb', 'o365-elementor-calendar' ), 'tab' => Controls_Manager::TAB_STYLE, 'condition' => ['show_load_more' => 'yes']]);
         $this->add_control('lm_footer_bg', ['label' => 'Footer sáv háttere', 'type' => Controls_Manager::COLOR, 'selectors' => ['{{WRAPPER}} .o365-agenda-footer' => 'background-color: {{VALUE}};']]);
         $this->add_control('lm_footer_border', ['label' => 'Footer elválasztó vonal', 'type' => Controls_Manager::COLOR, 'selectors' => ['{{WRAPPER}} .o365-agenda-footer' => 'border-top-color: {{VALUE}};']]);
         $this->add_group_control(Group_Control_Typography::get_type(), ['name' => 'lm_typo', 'selector' => '{{WRAPPER}} .o365-load-more-btn', 'separator' => 'before']);
-        $this->add_control('lm_radius', ['label' => 'Lekerekítés', 'type' => Controls_Manager::SLIDER, 'selectors' => ['{{WRAPPER}} .o365-load-more-btn' => 'border-radius: {{SIZE}}{{UNIT}};']]);
+        
+        $this->add_responsive_control('lm_radius', [
+            'label' => 'Lekerekítés', 
+            'type' => Controls_Manager::SLIDER, 
+            'size_units' => ['px', 'em', '%'],
+            'range' => [
+                'px' => [ 'min' => 0, 'max' => 50 ],
+                'em' => [ 'min' => 0, 'max' => 5 ],
+                '%'  => [ 'min' => 0, 'max' => 50 ],
+            ],
+            'selectors' => ['{{WRAPPER}} .o365-load-more-btn' => 'border-radius: {{SIZE}}{{UNIT}};']
+        ]);
+        
         $this->start_controls_tabs('tabs_lm_btns');
         $this->start_controls_tab('tab_lm_normal', ['label' => 'Normál']);
         $this->add_control('lm_color', ['label' => 'Szöveg színe', 'type' => Controls_Manager::COLOR, 'selectors' => ['{{WRAPPER}} .o365-load-more-btn' => 'color: {{VALUE}};']]);
@@ -155,11 +185,22 @@ class AgendaWidget extends AbstractWidget {
         $this->end_controls_tabs();
         $this->end_controls_section();
 
-        // 2.8 Popup Modal (Ugyanaz, mint a CalendarWidgetnél)
         $this->start_controls_section('style_modal', ['label' => __( 'Popup Modal (Részletek)', 'o365-elementor-calendar' ), 'tab' => Controls_Manager::TAB_STYLE, 'condition' => ['enable_modal' => 'yes']]);
         $this->add_control('modal_overlay_bg', ['label' => 'Háttér sötétítés (Overlay)', 'type' => Controls_Manager::COLOR, 'selectors' => ['{{WRAPPER}} .o365-event-modal-overlay' => 'background-color: {{VALUE}};']]);
         $this->add_control('modal_box_bg', ['label' => 'Modal Doboz Háttér', 'type' => Controls_Manager::COLOR, 'selectors' => ['{{WRAPPER}} .o365-event-modal' => 'background-color: {{VALUE}};']]);
-        $this->add_control('modal_radius', ['label' => 'Modal Lekerekítés', 'type' => Controls_Manager::SLIDER, 'selectors' => ['{{WRAPPER}} .o365-event-modal' => 'border-radius: {{SIZE}}{{UNIT}};']]);
+        
+        $this->add_responsive_control('modal_radius', [
+            'label' => 'Modal Lekerekítés', 
+            'type' => Controls_Manager::SLIDER, 
+            'size_units' => ['px', 'em', '%'],
+            'range' => [
+                'px' => [ 'min' => 0, 'max' => 50 ],
+                'em' => [ 'min' => 0, 'max' => 5 ],
+                '%'  => [ 'min' => 0, 'max' => 50 ],
+            ],
+            'selectors' => ['{{WRAPPER}} .o365-event-modal' => 'border-radius: {{SIZE}}{{UNIT}};']
+        ]);
+        
         $this->add_group_control(Group_Control_Box_Shadow::get_type(), ['name' => 'modal_shadow', 'selector' => '{{WRAPPER}} .o365-event-modal']);
         $this->add_control('modal_title_heading', ['label' => 'Tipográfia és Színek', 'type' => Controls_Manager::HEADING, 'separator' => 'before']);
         $this->add_control('modal_title_color', ['label' => 'Cím Színe', 'type' => Controls_Manager::COLOR, 'selectors' => ['{{WRAPPER}} .o365-modal-title' => 'color: {{VALUE}};']]);
@@ -169,10 +210,21 @@ class AgendaWidget extends AbstractWidget {
         $this->add_control('modal_link_color', ['label' => 'Leírásban lévő linkek színe', 'type' => Controls_Manager::COLOR, 'selectors' => ['{{WRAPPER}} .o365-modal-desc a' => 'color: {{VALUE}};']]);
         $this->end_controls_section();
 
-        // 2.9 Modal Akciógombok
         $this->start_controls_section('style_modal_buttons', ['label' => __( 'Modal Akciógombok', 'o365-elementor-calendar' ), 'tab' => Controls_Manager::TAB_STYLE, 'condition' => ['enable_modal' => 'yes']]);
         $this->add_group_control(Group_Control_Typography::get_type(), ['name' => 'modal_btn_typo', 'selector' => '{{WRAPPER}} .o365-export-ical-btn, {{WRAPPER}} .o365-meeting-btn']);
-        $this->add_control('modal_btn_radius', ['label' => 'Gomb Lekerekítés', 'type' => Controls_Manager::SLIDER, 'selectors' => ['{{WRAPPER}} .o365-export-ical-btn, {{WRAPPER}} .o365-meeting-btn' => 'border-radius: {{SIZE}}{{UNIT}};']]);
+        
+        $this->add_responsive_control('modal_btn_radius', [
+            'label' => 'Gomb Lekerekítés', 
+            'type' => Controls_Manager::SLIDER, 
+            'size_units' => ['px', 'em', '%'],
+            'range' => [
+                'px' => [ 'min' => 0, 'max' => 50 ],
+                'em' => [ 'min' => 0, 'max' => 5 ],
+                '%'  => [ 'min' => 0, 'max' => 50 ],
+            ],
+            'selectors' => ['{{WRAPPER}} .o365-export-ical-btn, {{WRAPPER}} .o365-meeting-btn' => 'border-radius: {{SIZE}}{{UNIT}};']
+        ]);
+        
         $this->start_controls_tabs('tabs_modal_btns');
         $this->start_controls_tab('tab_mb_normal', ['label' => 'Normál']);
         $this->add_control('mb_export_bg', ['label' => 'Export Gomb Háttér', 'type' => Controls_Manager::COLOR, 'selectors' => ['{{WRAPPER}} .o365-export-ical-btn' => 'background-color: {{VALUE}};']]);
@@ -189,7 +241,6 @@ class AgendaWidget extends AbstractWidget {
         $this->end_controls_tabs();
         $this->end_controls_section();
 
-        // 2.10 Üres állapot stílus (Az AbstractWidget-ből)
         $this->register_empty_state_style_controls();
     }
 
@@ -200,7 +251,6 @@ class AgendaWidget extends AbstractWidget {
         $cal_ids    = !empty($settings['calendar_id']) ? implode(',', (array)$settings['calendar_id']) : '';
         $cat_filter = !empty($settings['category_filter']) ? implode(',', (array)$settings['category_filter']) : '';
 
-        // Dinamikus adatátadás a JS-nek
         ?>
         <div class="o365-agenda-container" 
              data-calendar-id="<?php echo esc_attr($cal_ids); ?>"

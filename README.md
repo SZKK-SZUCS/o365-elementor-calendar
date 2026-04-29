@@ -89,9 +89,19 @@ Igen. Ha az O365 naptáradban kategóriákat használsz az eseményekhez, az Ele
 
 Minden fontos változtatás ebben a szekcióban kerül dokumentálásra. A formátum a Keep a Changelog szabványt követi.
 
-### [0.9.9] - 2026-04-28
+### [1.0.0] - 2026-04-29
 
-#### Hozzáadva
+- **Stable Release**
+- Új "Esemény kereső" (Event Picker) modál integrálása a Kiemelt esemény (Single Event) widgetbe a hajszálpontos, ID-alapú kiválasztáshoz.
+- Két új, opcionális és egyedileg paraméterezhető akciógomb (pl. Regisztráció, Tovább) hozzáadása a Kiemelt esemény widgethez.
+- O365 egyedi kategória színek megjelenítési hibájának javítása (Elementor CSS felülírások optimalizálása).
+- Teljes naptár nézetnél a "+X további" (popover) felugró ablak kilógásának javítása dinamikus görgetősáv alkalmazásával.
+- Naptárba mentés (.ics export) funkció dátumkezelési és konvertálási hibájának javítása az Agenda és Kiemelt esemény widgeteknél.
+- Elementor stílusvezérlők (lekerekítések, margók, méretek) egységesítése kiterjesztett reszponzív mértékegységekkel (px, em, %, vh).
+- Biztonsági korlátok (range limits) bevezetése a lekerekítés csúszkáknál a dizájn szétesésének (szöveglevágás) megelőzése érdekében.
+- Setup Wizard és Elementor paraméterek kibővítése részletes, segítő leírásokkal a jobb felhasználói élmény (UX) és a könnyebb beállítás érdekében.
+
+### [0.9.9] - 2026-04-28
 
 - **Initial Release (Első kiadás)**
 - O365 Naptár (FullCalendar) widget integráció.

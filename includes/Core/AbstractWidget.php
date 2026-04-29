@@ -14,19 +14,14 @@ if ( ! defined( 'ABSPATH' ) ) exit;
  */
 abstract class AbstractWidget extends Widget_Base {
 
-    // Minden widgetünk ugyanabba a kategóriába kerül
     public function get_categories() {
         return [ 'general' ];
     }
 
-    // Minden widgetünk ugyanazt a JS fájlt használja
     public function get_script_depends() {
         return [ 'o365-calendar-script' ];
     }
 
-    /**
-     * Létrehozza a naptár és kategória választó tömböket a WP Options-ből.
-     */
     protected function get_account_options() {
         $accounts = get_option( 'o365_accounts', [] );
         $calendar_options = [];
@@ -51,9 +46,6 @@ abstract class AbstractWidget extends Widget_Base {
         ];
     }
 
-    /**
-     * Kirendereli a közös API státuszt, Wizard gombot és a naptár/kategória választót.
-     */
     protected function register_api_and_account_controls( $section_label = 'Adatforrás & Setup', $tab = Controls_Manager::TAB_CONTENT ) {
         $this->start_controls_section('section_setup', [
             'label' => $section_label,
@@ -75,7 +67,7 @@ abstract class AbstractWidget extends Widget_Base {
 
         $this->add_control('auth_wizard_trigger', [
             'type' => Controls_Manager::RAW_HTML,
-            'raw'  => '<button type="button" id="o365-trigger-wizard" class="elementor-button elementor-button-default" style="width:100%; background:#0073aa;"><i class="eicon-cog"></i> Setup Wizard</button>',
+            'raw'  => '<button type="button" id="o365-trigger-wizard" class="elementor-button elementor-button-default" style="width:100%; background:#0073aa;"><i class="eicon-cog"></i> Setup Wizard (Hitelesítés)</button>',
         ]);
 
         $options = $this->get_account_options();
@@ -86,7 +78,8 @@ abstract class AbstractWidget extends Widget_Base {
             'options'     => $options['calendars'],
             'multiple'    => true,
             'label_block' => true,
-            'separator'   => 'before'
+            'separator'   => 'before',
+            'description' => '<strong>Fontos:</strong> Új fiók hitelesítése után frissítsd az oldalt (F5), hogy a naptár megjelenjen ebben a listában!',
         ]);
 
         $this->add_control('category_filter', [
@@ -95,6 +88,7 @@ abstract class AbstractWidget extends Widget_Base {
             'options'     => $options['categories'],
             'multiple'    => true,
             'label_block' => true,
+            'description' => 'Az összes hitelesített fiók kategóriáinak összevont listája. Ha üresen hagyod, minden esemény megjelenik.',
         ]);
 
         $this->add_control('resync_trigger', [
@@ -105,9 +99,6 @@ abstract class AbstractWidget extends Widget_Base {
         $this->end_controls_section();
     }
 
-    /**
-     * Kirendereli az Üres Állapot (Maszk) stílusvezérlőit.
-     */
     protected function register_empty_state_style_controls() {
         $this->start_controls_section('section_style_empty', [
             'label' => __( 'Üres állapot / Maszk stílusa', 'o365-elementor-calendar' ),
@@ -150,9 +141,15 @@ abstract class AbstractWidget extends Widget_Base {
             'selector' => '{{WRAPPER}} .o365-empty, {{WRAPPER}} .o365-single-mask, {{WRAPPER}} .fc-empty-message',
         ]);
 
-        $this->add_control('empty_border_radius', [
+        $this->add_responsive_control('empty_border_radius', [
             'label'      => __( 'Lekerekítés', 'o365-elementor-calendar' ),
             'type'       => Controls_Manager::SLIDER,
+            'size_units' => [ 'px', 'em', '%' ],
+            'range'      => [
+                'px' => [ 'min' => 0, 'max' => 50 ],
+                'em' => [ 'min' => 0, 'max' => 5 ],
+                '%'  => [ 'min' => 0, 'max' => 50 ],
+            ],
             'selectors'  => [
                 '{{WRAPPER}} .o365-empty, {{WRAPPER}} .o365-single-mask, {{WRAPPER}} .fc-empty-message' => 'border-radius: {{SIZE}}{{UNIT}};',
             ],
