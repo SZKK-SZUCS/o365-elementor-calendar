@@ -2,16 +2,26 @@
 /**
  * Plugin Name: O365 Elementor Calendar
  * Description: Enterprise Microsoft 365 Calendar integration for Elementor. Displays FullCalendar, Agenda and Single Event widgets.
- * Version: 1.0.1
- * Author: SZKK Szucs
+ * Version: 1.0.2
+ * Author: MFÜI - Szurofka Márton
+ * Author URI: https://uni.sze.hu
  * Text Domain: o365-elementor-calendar
  * Domain Path: /languages
  */
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
+// ==========================================
+// 1. AUTOLOADER ÉS BIZTONSÁGI FÉK (FAIL-SAFE)
+// ==========================================
 if ( file_exists( __DIR__ . '/vendor/autoload.php' ) ) {
     require_once __DIR__ . '/vendor/autoload.php';
+} else {
+    // Ha hiányzik a vendor mappa (sérült vagy nyers ZIP letöltés), leállítjuk a betöltést!
+    add_action( 'admin_notices', function() {
+        echo '<div class="notice notice-error"><p><strong>O365 Calendar Hiba:</strong> A <code>vendor/</code> mappa hiányzik! Úgy tűnik, a nyers forráskód lett telepítve a lefordított (built) csomag helyett. A bővítmény biztonsági okokból leállt, hogy megelőzze az oldal összeomlását.</p></div>';
+    });
+    return; // Nincs tovább futás, nincs Fatal Error!
 }
 
 add_action( 'plugins_loaded', function() {
@@ -44,7 +54,6 @@ add_action( 'admin_menu', function() {
     );
 });
 
-// JAVÍTOTT FÜGGVÉNY
 function o365_sync_accounts( $emails ) {
     if ( empty( $emails ) ) return;
     $emails = (array) $emails;
@@ -56,7 +65,7 @@ function o365_sync_accounts( $emails ) {
         if ( ! isset( $accounts[ $email ] ) ) continue;
         
         $cals_response = $api->get_calendars( $email );
-        $cats_response = $api->get_master_categories( $email ); // JAVÍTVA a metódus neve
+        $cats_response = $api->get_master_categories( $email );
 
         $parsed_cals = [];
         if ( ! is_wp_error( $cals_response ) && isset( $cals_response['value'] ) ) {
@@ -278,5 +287,12 @@ add_action( 'elementor/editor/after_enqueue_scripts', function() {
 new \O365Calendar\API\AjaxHandlers();
 
 if ( class_exists( 'YahnisElsts\PluginUpdateChecker\V5\PucFactory' ) ) {
-    \YahnisElsts\PluginUpdateChecker\V5\PucFactory::buildUpdateChecker( 'https://github.com/szkk-szucs/o365-elementor-calendar/', __FILE__, 'o365-elementor-calendar' );
+    $updateChecker = \YahnisElsts\PluginUpdateChecker\V5\PucFactory::buildUpdateChecker( 
+        'https://github.com/szkk-szucs/o365-elementor-calendar/', 
+        __FILE__, 
+        'o365-elementor-calendar' 
+    );
+    
+    // Ez a kulcsfontosságú sor mondja meg a PUC-nak, hogy a csatolt ZIP-et húzza le, ne a forráskódot!
+    $updateChecker->getVcsApi()->enableReleaseAssets();
 }
